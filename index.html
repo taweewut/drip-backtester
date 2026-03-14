@@ -11,15 +11,44 @@
     --bg:#0b0e14;--surface:#12161f;--surface2:#1a1f2e;--surface3:#222840;
     --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
     --text:#e8eaf0;--muted:#5a6070;--muted2:#8890a0;
-    --green:#00d68f;--green-dim:rgba(0,214,143,0.12);
+    --green:#00b478;--green-dim:rgba(0,180,120,0.12);
     --purple:#8b7ff5;--amber:#f5a623;--red:#f5564a;--blue:#4da6ff;
     --radius:10px;--radius-lg:16px;
+    --chart-grid:rgba(255,255,255,0.04);--chart-tick:#5a6070;
+    --chart-tooltip-bg:#1a1f2e;--chart-tooltip-border:#2a2f40;
+    --chart-deposited:#3a3f50;
   }
+  html.light {
+    --bg:#f4f5f7;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e4e6ec;
+    --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.12);
+    --text:#111318;--muted:#9aa0b0;--muted2:#6b7280;
+    --green:#009962;--green-dim:rgba(0,153,98,0.1);
+    --purple:#6c5fc7;--amber:#b07010;--red:#d63e32;--blue:#1a6fb5;
+    --chart-grid:rgba(0,0,0,0.05);--chart-tick:#9aa0b0;
+    --chart-tooltip-bg:#ffffff;--chart-tooltip-border:#d0d4dc;
+    --chart-deposited:#c0c4d0;
+  }
+  *{transition:background-color 0.2s,border-color 0.2s,color 0.1s;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
   .grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
     background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
     background-size:40px 40px;}
+  html.light .grid-bg{
+    background-image:linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px);}
+
+  /* ── Theme switcher ── */
+  .theme-switcher{
+    position:fixed;top:16px;right:20px;z-index:100;
+    background:var(--surface);border:1px solid var(--border2);
+    border-radius:20px;padding:6px 12px;cursor:pointer;
+    display:flex;align-items:center;gap:7px;
+    font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);
+    box-shadow:none;
+  }
+  .theme-switcher:hover{border-color:var(--green);color:var(--text);}
+  .theme-icon{width:15px;height:15px;flex-shrink:0;}
+  @media(max-width:480px){.theme-switcher{top:10px;right:10px;padding:5px 10px;}}
   .wrap{max-width:980px;margin:0 auto;padding:2rem 1.5rem 5rem;position:relative;z-index:1;}
 
   /* ── Header ── */
@@ -115,6 +144,16 @@
   .stats-table tr:last-child td{border-bottom:none;}
   .up{color:var(--green);}.down{color:var(--red);}
 
+  /* ── Deep stats panel ── */
+  .stat-col{padding:0 6px;}
+  .stat-col-header{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--muted);padding:6px 10px 8px;border-bottom:1px solid var(--border);}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;
+    padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;}
+  .stat-row:last-child{border-bottom:none;}
+  .stat-label{color:var(--muted2);font-family:'DM Mono',monospace;font-size:11px;}
+  .stat-val{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;text-align:right;}
+
   /* ── Ticker editor ── */
   .editor-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:1.25rem;}
   .editor-header h2{font-size:16px;font-weight:600;}
@@ -168,19 +207,36 @@
 </head>
 <body>
 <div class="grid-bg"></div>
+
+<!-- Theme switcher -->
+<button class="theme-switcher" id="themeSwitcher" title="Toggle light/dark mode">
+  <svg class="theme-icon" id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </svg>
+  <span id="themeLabel">Light</span>
+</button>
+
+<!-- Language switcher -->
+<button class="theme-switcher" id="langSwitcher" style="right:110px;" title="Switch language">
+  <span style="font-size:14px;line-height:1;">🌐</span>
+  <span id="langLabel">ภาษาไทย</span>
+</button>
 <div class="wrap">
 
 <header>
   <div class="tag">DRIP Backtester v2</div>
   <h1>Dividend vs <span>Growth</span></h1>
-  <p class="subtitle">Compare ETFs &amp; stocks with DRIP reinvestment, DCA &amp; inflation-adjusted returns</p>
+  <p class="subtitle" data-i18n="subtitle">Compare ETFs &amp; stocks with DRIP reinvestment, DCA &amp; inflation-adjusted returns</p>
 </header>
 
 <!-- Tab nav -->
 <div class="tab-nav">
-  <button class="tab-btn active" data-tab="backtest">Backtest</button>
-  <button class="tab-btn" data-tab="editor">Manage Tickers</button>
-  <button class="tab-btn" data-tab="guide">Code Guide</button>
+  <button class="tab-btn active" data-tab="backtest" data-i18n="tab_backtest">Backtest</button>
+  <button class="tab-btn" data-tab="editor" data-i18n="tab_editor">Manage Tickers</button>
+  <button class="tab-btn" data-tab="guide" data-i18n="tab_guide">Code Guide</button>
 </div>
 
 <!-- ═══════════════════════════════════ TAB: BACKTEST ═══════════════════════════════════ -->
@@ -189,7 +245,7 @@
   <div class="card">
     <div class="controls-grid">
       <div>
-        <div class="field-label">Ticker A</div>
+        <div class="field-label" data-i18n="ticker_a">Ticker A</div>
         <div class="ticker-row">
           <div class="color-dot" style="background:var(--green)"></div>
           <select id="selA"></select>
@@ -197,7 +253,7 @@
         <div class="chips" id="chipsA"></div>
       </div>
       <div>
-        <div class="field-label">Ticker B</div>
+        <div class="field-label" data-i18n="ticker_b">Ticker B</div>
         <div class="ticker-row">
           <div class="color-dot" style="background:var(--purple)"></div>
           <select id="selB"></select>
@@ -207,7 +263,7 @@
     </div>
 
     <div style="margin-top:1.25rem;">
-      <div class="field-label">Backtest period</div>
+      <div class="field-label" data-i18n="period">Backtest period</div>
       <div class="period-row">
         <button class="period-btn" data-yrs="5">5 yr</button>
         <button class="period-btn active" data-yrs="10">10 yr</button>
@@ -218,43 +274,76 @@
 
     <div class="controls-grid" style="margin-top:1.25rem;">
       <div class="slider-field">
-        <label>Initial lump sum <span id="lump-lbl">$10,000</span></label>
+        <label><span data-i18n="lump_sum">Initial lump sum</span> <span id="lump-lbl">$10,000</span></label>
         <input type="range" id="lump" min="1000" max="100000" step="1000" value="10000">
       </div>
       <div class="slider-field">
-        <label>Monthly DCA <span id="dca-lbl">$200</span></label>
+        <label><span data-i18n="monthly_dca">Monthly DCA</span> <span id="dca-lbl">$200</span></label>
         <input type="range" id="dca" min="0" max="2000" step="50" value="200">
       </div>
     </div>
 
-    <button class="run-btn" id="runBtn">Run Backtest</button>
+    <button class="run-btn" id="runBtn" data-i18n="run_btn">Run Backtest</button>
   </div>
 
   <div id="results" class="results-section hidden">
     <div class="metrics-grid" id="metricsGrid"></div>
+    <div class="metrics-grid" id="divMetricsGrid" style="margin-top:-0.5rem;"></div>
+
+    <!-- Deep stats panel -->
+    <div class="chart-card" id="deepStatsPanel" style="margin-bottom:1.25rem;">
+      <div class="chart-title"><span data-i18n="div_metrics">Dividend metrics</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;" id="deepStatsGrid"></div>
+    </div>
+
+    <div class="chart-card" id="growthStatsPanel" style="margin-bottom:1.25rem;">
+      <div class="chart-title"><span data-i18n="growth_metrics">Growth &amp; risk metrics</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;" id="growthStatsGrid"></div>
+    </div>
+
     <div class="chart-card">
       <div class="chart-title">
-        <span>Portfolio value — inflation-adjusted real $</span>
+        <span data-i18n="chart_portfolio">Portfolio value — inflation-adjusted real $</span>
         <div class="legend" id="legend1"></div>
       </div>
       <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
     </div>
+
     <div class="chart-card">
       <div class="chart-title">
-        <span>Annual real gain / loss</span>
+        <span data-i18n="chart_div_annual">Annual dividend income — actual $ received per year</span>
+        <div class="legend" id="legend3"></div>
+      </div>
+      <div class="chart-wrap-sm"><canvas id="divBarChart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        <span data-i18n="chart_div_cum">Cumulative dividend income — total dividends collected</span>
+        <div class="legend" id="legend4"></div>
+      </div>
+      <div class="chart-wrap-sm"><canvas id="divCumChart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        <span data-i18n="chart_gain">Annual real gain / loss</span>
         <div class="legend" id="legend2"></div>
       </div>
       <div class="chart-wrap-sm"><canvas id="barChart"></canvas></div>
     </div>
+
     <div class="chart-card">
-      <div class="chart-title"><span>Year-by-year breakdown</span></div>
+      <div class="chart-title"><span data-i18n="chart_table">Year-by-year breakdown</span></div>
       <div style="overflow-x:auto;"><table class="stats-table" id="statsTable"></table></div>
     </div>
   </div>
 
   <p class="disclaimer">
-    Data: verified historical annual returns (2004–2024) · DRIP reinvested annually · US CPI inflation-adjusted<br>
-    Educational purposes only — not financial advice
+    <span data-i18n="disclaimer">Data: verified historical annual returns (2004–2024) · DRIP reinvested annually · US CPI inflation-adjusted<br>Educational purposes only — not financial advice</span>
+  </p>
+  <p style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:1rem;padding-bottom:1rem;">
+    <span data-i18n="credit">Built by Taweewut</span>
   </p>
 </div>
 
@@ -263,39 +352,38 @@
 
   <div class="card">
     <div class="editor-header">
-      <h2>Ticker library <span style="font-size:13px;font-weight:400;color:var(--muted2);font-family:'DM Mono',monospace;" id="tickerCount"></span></h2>
+      <h2 data-i18n="ticker_library">Ticker library <span style="font-size:13px;font-weight:400;color:var(--muted2);font-family:'DM Mono',monospace;" id="tickerCount"></span></h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-amber" id="exportBtn">Export JSON</button>
-        <button class="btn btn-green" id="importTriggerBtn">Import JSON</button>
+        <button class="btn btn-amber" id="exportBtn" data-i18n="export_json">Export JSON</button>
+        <button class="btn btn-green" id="importTriggerBtn" data-i18n="import_json">Import JSON</button>
       </div>
     </div>
 
     <div class="ticker-list" id="tickerList"></div>
-
     <div class="divider"></div>
 
     <!-- Add new ticker form -->
     <div class="add-form">
       <div class="add-form-title">
-        Add new ticker
-        <span>fill in annual data below — price return % and dividend yield %</span>
+        <span data-i18n="add_ticker">Add new ticker</span>
+        <span data-i18n="add_ticker_sub">fill in annual data below — price return % and dividend yield %</span>
       </div>
 
       <div class="info-box">
-        <strong>Where to find data:</strong> Go to <strong>macrotrends.net</strong> → search your ticker → "Annual Returns" for price return, "Dividend Yield History" for yield. Enter as decimals: 12.5% = <strong>0.125</strong>, 3.2% = <strong>0.032</strong>
+        <span data-i18n="data_source_tip"><strong>Where to find data:</strong> Go to <strong>macrotrends.net</strong> → search your ticker → "Annual Returns" for price return, "Dividend Yield History" for yield. Enter as decimals: 12.5% = <strong>0.125</strong>, 3.2% = <strong>0.032</strong></span>
       </div>
 
       <div class="form-grid-3" style="margin-bottom:1rem;">
         <div class="form-field">
-          <label>Ticker symbol</label>
+          <label data-i18n="ticker_symbol">Ticker symbol</label>
           <input type="text" id="newSymbol" placeholder="e.g. VTI" maxlength="8" style="text-transform:uppercase;">
         </div>
         <div class="form-field">
-          <label>Full name</label>
+          <label data-i18n="full_name">Full name</label>
           <input type="text" id="newName" placeholder="e.g. Vanguard Total Market">
         </div>
         <div class="form-field">
-          <label>Category</label>
+          <label data-i18n="category">Category</label>
           <select id="newCat">
             <option>Dividend ETF</option>
             <option>Div Growth ETF</option>
@@ -312,26 +400,26 @@
       </div>
 
       <div class="legend-row">
-        <span><span class="legend-dot" style="background:var(--green)"></span>Price return (p) — e.g. +0.125 or -0.045</span>
-        <span><span class="legend-dot" style="background:var(--purple)"></span>Div yield (d) — e.g. 0.032 (0 if none)</span>
+        <span><span class="legend-dot" style="background:var(--green)"></span><span data-i18n="price_return_hint">Price return (p) — e.g. +0.125 or -0.045</span></span>
+        <span><span class="legend-dot" style="background:var(--purple)"></span><span data-i18n="div_yield_hint">Div yield (d) — e.g. 0.032 (0 if none)</span></span>
       </div>
 
       <div class="years-grid" id="yearInputGrid"></div>
 
       <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
-        <button class="btn btn-green" id="addTickerBtn">Add to library</button>
-        <button class="btn" id="clearFormBtn">Clear</button>
+        <button class="btn btn-green" id="addTickerBtn" data-i18n="add_to_library">Add to library</button>
+        <button class="btn" id="clearFormBtn" data-i18n="clear">Clear</button>
       </div>
       <div id="addMsg" style="font-family:'DM Mono',monospace;font-size:12px;margin-top:8px;min-height:18px;"></div>
     </div>
 
-    <!-- Import area (hidden by default) -->
+    <!-- Import area -->
     <div id="importArea" class="export-area hidden">
-      <div class="field-label" style="margin-bottom:8px;">Paste JSON ticker data below and click Import</div>
+      <div class="field-label" style="margin-bottom:8px;" data-i18n="paste_json">Paste JSON ticker data below and click Import</div>
       <textarea id="importJson" placeholder='{"TICKER":{"name":"Name","cat":"Category","data":{"2020":{"p":0.15,"d":0.025},...}}}'></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn btn-green" id="doImportBtn">Import</button>
-        <button class="btn" id="cancelImportBtn">Cancel</button>
+        <button class="btn btn-green" id="doImportBtn" data-i18n="import_btn">Import</button>
+        <button class="btn" id="cancelImportBtn" data-i18n="cancel">Cancel</button>
       </div>
     </div>
   </div>
@@ -339,85 +427,7 @@
 
 <!-- ═══════════════════════════════════ TAB: CODE GUIDE ═══════════════════════════════════ -->
 <div id="tab-guide" class="tab-panel">
-  <div class="card">
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:1.25rem;">How to add tickers by editing the code</h2>
-
-    <div class="info-box" style="margin-bottom:1.5rem;">
-      <strong>Tip:</strong> The visual editor (Manage Tickers tab) is the easiest way to add tickers without touching code. Use this guide if you prefer to edit the HTML file directly — useful when adding many tickers at once.
-    </div>
-
-    <div style="font-family:'DM Mono',monospace;font-size:12px;line-height:1.9;color:var(--muted2);">
-
-      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;">① Locate the TICKERS object</div>
-      <p style="margin-bottom:12px;">Open <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">index.html</code> in any text editor. Search for <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">const TICKERS = {</code> — this is around line 140.</p>
-
-      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">② Data structure for one ticker</div>
-      <pre style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;overflow-x:auto;font-size:11px;line-height:1.8;color:var(--text);">"VTI": {
-  name: "Vanguard Total Market",   // display name
-  cat:  "Blend ETF",               // category (shown in dropdown group)
-  data: {
-    2015: { p: 0.009,  d: 0.019 }, // p = price return, d = dividend yield
-    2016: { p: 0.125,  d: 0.020 },
-    2017: { p: 0.213,  d: 0.018 },
-    2018: { p: -0.053, d: 0.020 }, // negative = down year
-    2019: { p: 0.307,  d: 0.019 },
-    2020: { p: 0.212,  d: 0.016 },
-    2021: { p: 0.255,  d: 0.013 },
-    2022: { p: -0.193, d: 0.016 },
-    2023: { p: 0.259,  d: 0.014 },
-    2024: { p: 0.239,  d: 0.014 }
-  }
-},</pre>
-
-      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">③ Where to get the numbers</div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:1rem;">
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:8px 0;color:var(--text);min-width:140px;">Price return (p)</td>
-          <td style="padding:8px 0;">macrotrends.net → [TICKER] → "Annual Stock Return" — use Total Return column, divide by 100</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:8px 0;color:var(--text);">Dividend yield (d)</td>
-          <td style="padding:8px 0;">macrotrends.net → [TICKER] → "Dividend Yield" → Annual average — divide by 100. Use 0 for non-dividend stocks</td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;color:var(--text);">Format</td>
-          <td style="padding:8px 0;">Decimals, not percent: 12.5% → <strong style="color:var(--green);">0.125</strong>, -4.5% → <strong style="color:var(--red);">-0.045</strong>, 3.2% → <strong style="color:var(--purple);">0.032</strong></td>
-        </tr>
-      </table>
-
-      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">④ Paste it in the right place</div>
-      <p style="margin-bottom:8px;">Add your new entry inside the <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">TICKERS = { ... }</code> object. Each entry ends with a comma except the last one:</p>
-      <pre style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;overflow-x:auto;font-size:11px;line-height:1.8;color:var(--text);">const TICKERS = {
-  "VYM": { ... },   // existing ticker
-  "QQQ": { ... },   // existing ticker
-  "VTI": { ... },   // &lt;-- your new ticker (comma after it if more follow)
-  "NVDA": { ... }   // last entry — no trailing comma
-};</pre>
-
-      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">⑤ Save and refresh</div>
-      <p>Save the file, refresh the browser (or re-upload to GitHub Pages). Your ticker will appear automatically in both dropdowns, grouped by the <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">cat</code> field.</p>
-
-      <div style="color:var(--amber);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">Common mistakes</div>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:7px 0;color:var(--red);min-width:180px;">p: 12.5</td>
-          <td style="padding:7px 0;">Wrong — this is 1250%, not 12.5%. Always use decimals.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:7px 0;color:var(--red);">Missing years</td>
-          <td style="padding:7px 0;">If a year is missing, the overlap with other tickers shrinks. Fill in as many years as possible.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:7px 0;color:var(--red);">Trailing comma on last item</td>
-          <td style="padding:7px 0;">Will cause a JS error. The last entry in TICKERS should NOT have a comma after the closing <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">}</code>.</td>
-        </tr>
-        <tr>
-          <td style="padding:7px 0;color:var(--red);">d: undefined for growth</td>
-          <td style="padding:7px 0;">If a stock pays no dividend, use <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">d: 0</code>, not omitting d entirely.</td>
-        </tr>
-      </table>
-    </div>
-  </div>
+  <div class="card" id="guideContent"></div>
 </div>
 
 </div><!-- /wrap -->
@@ -444,7 +454,14 @@ const BASE_TICKERS = {
   "MSFT": { name:"Microsoft Corp.",              cat:"Growth Stock",    data:{2004:{p:0.083,d:0.008},2005:{p:-0.006,d:0.011},2006:{p:0.156,d:0.013},2007:{p:0.203,d:0.013},2008:{p:-0.444,d:0.018},2009:{p:0.600,d:0.022},2010:{p:-0.067,d:0.025},2011:{p:-0.046,d:0.028},2012:{p:0.057,d:0.031},2013:{p:0.443,d:0.028},2014:{p:0.276,d:0.026},2015:{p:0.229,d:0.024},2016:{p:0.149,d:0.025},2017:{p:0.404,d:0.021},2018:{p:0.207,d:0.017},2019:{p:0.577,d:0.013},2020:{p:0.428,d:0.010},2021:{p:0.527,d:0.008},2022:{p:-0.284,d:0.011},2023:{p:0.584,d:0.008},2024:{p:0.151,d:0.008}}},
   "KO":   { name:"Coca-Cola Co.",                cat:"Dividend Stock",  data:{2004:{p:0.028,d:0.026},2005:{p:0.003,d:0.029},2006:{p:0.228,d:0.027},2007:{p:0.315,d:0.025},2008:{p:-0.261,d:0.030},2009:{p:0.269,d:0.029},2010:{p:0.176,d:0.028},2011:{p:0.115,d:0.028},2012:{p:0.068,d:0.028},2013:{p:0.168,d:0.029},2014:{p:0.041,d:0.030},2015:{p:0.035,d:0.031},2016:{p:-0.004,d:0.032},2017:{p:0.124,d:0.031},2018:{p:0.012,d:0.034},2019:{p:0.180,d:0.030},2020:{p:-0.010,d:0.033},2021:{p:0.085,d:0.030},2022:{p:0.112,d:0.029},2023:{p:-0.038,d:0.031},2024:{p:0.033,d:0.032}}},
   "JNJ":  { name:"Johnson & Johnson",            cat:"Dividend Stock",  data:{2004:{p:0.255,d:0.018},2005:{p:-0.038,d:0.020},2006:{p:0.124,d:0.022},2007:{p:0.042,d:0.023},2008:{p:-0.086,d:0.027},2009:{p:0.084,d:0.030},2010:{p:0.013,d:0.032},2011:{p:0.098,d:0.033},2012:{p:0.095,d:0.032},2013:{p:0.349,d:0.030},2014:{p:0.160,d:0.028},2015:{p:-0.100,d:0.031},2016:{p:0.136,d:0.031},2017:{p:0.131,d:0.028},2018:{p:-0.064,d:0.030},2019:{p:0.123,d:0.028},2020:{p:0.064,d:0.027},2021:{p:0.107,d:0.025},2022:{p:0.033,d:0.025},2023:{p:-0.126,d:0.029},2024:{p:-0.047,d:0.034}}},
-  "NVDA": { name:"NVIDIA Corp.",                 cat:"Growth Stock",    data:{2015:{p:0.297,d:0.002},2016:{p:2.268,d:0.001},2017:{p:0.832,d:0.001},2018:{p:-0.310,d:0.003},2019:{p:0.762,d:0.002},2020:{p:1.220,d:0.001},2021:{p:1.251,d:0.001},2022:{p:-0.502,d:0.001},2023:{p:2.388,d:0.001},2024:{p:1.712,d:0.001}}}
+  "NVDA": { name:"NVIDIA Corp.",                 cat:"Growth Stock",    data:{2015:{p:0.297,d:0.002},2016:{p:2.268,d:0.001},2017:{p:0.832,d:0.001},2018:{p:-0.310,d:0.003},2019:{p:0.762,d:0.002},2020:{p:1.220,d:0.001},2021:{p:1.251,d:0.001},2022:{p:-0.502,d:0.001},2023:{p:2.388,d:0.001},2024:{p:1.712,d:0.001}}},
+  "GOOGL": { name:"Alphabet Inc.",               cat:"Growth Stock",    data:{2015:{p:0.466,d:0.000},2016:{p:0.019,d:0.000},2017:{p:0.330,d:0.000},2018:{p:-0.008,d:0.000},2019:{p:0.281,d:0.000},2020:{p:0.309,d:0.000},2021:{p:0.651,d:0.000},2022:{p:-0.391,d:0.000},2023:{p:0.583,d:0.000},2024:{p:0.360,d:0.000}}},
+  "TSLA":  { name:"Tesla Inc.",                  cat:"Growth Stock",    data:{2015:{p:0.078,d:0.000},2016:{p:-0.110,d:0.000},2017:{p:0.454,d:0.000},2018:{p:0.069,d:0.000},2019:{p:0.258,d:0.000},2020:{p:7.435,d:0.000},2021:{p:0.497,d:0.000},2022:{p:-0.650,d:0.000},2023:{p:1.017,d:0.000},2024:{p:0.625,d:0.000}}},
+  "TSM":   { name:"Taiwan Semiconductor (TSMC)", cat:"Growth Stock",    data:{2015:{p:0.102,d:0.028},2016:{p:0.221,d:0.029},2017:{p:0.391,d:0.027},2018:{p:-0.193,d:0.033},2019:{p:0.534,d:0.030},2020:{p:0.829,d:0.020},2021:{p:0.099,d:0.019},2022:{p:-0.368,d:0.024},2023:{p:0.423,d:0.020},2024:{p:0.926,d:0.011}}},
+  "O":     { name:"Realty Income Corp.",         cat:"REIT / Div Stock", data:{2015:{p:0.063,d:0.048},2016:{p:0.171,d:0.045},2017:{p:0.044,d:0.044},2018:{p:0.105,d:0.042},2019:{p:0.290,d:0.039},2020:{p:-0.079,d:0.045},2021:{p:0.145,d:0.043},2022:{p:-0.074,d:0.047},2023:{p:-0.045,d:0.056},2024:{p:-0.021,d:0.056}}},
+  "JEPQ":  { name:"JPMorgan Nasdaq Equity Premium", cat:"Income ETF",   data:{2022:{p:-0.192,d:0.060},2023:{p:0.232,d:0.112},2024:{p:0.133,d:0.108}}},
+  "QQQI":  { name:"NEOS Nasdaq 100 High Income", cat:"Income ETF",      data:{2024:{p:0.099,d:0.143}}},
+  "MSTY":  { name:"YieldMax MSTR Option Income", cat:"Income ETF",      data:{2024:{p:-0.421,d:1.820}}}
 };
 
 // CPI annual inflation rates
@@ -533,48 +550,252 @@ function simulate(lump,monthly,years,ticker){
 }
 function inflAdj(arr,years){ let m=1; return arr.map((v,i)=>{ m*=(1+(CPI[years[i]]||0.025)); return v/m; }); }
 
-let lc,bc;
+let lc,bc,dbc,dcc;
+
+// Simulate with dividend tracking — returns {balances, annualDiv}
+function simulateDetailed(lump, monthly, years, ticker) {
+  let bal = lump; const balances=[], annualDiv=[];
+  years.forEach(y=>{
+    const {p,d} = TICKERS[ticker].data[y];
+    bal += monthly*6;
+    const divIncome = bal * d;
+    bal = bal*(1+p) + divIncome;
+    bal += monthly*6;
+    balances.push(Math.max(0,bal));
+    annualDiv.push(Math.round(divIncome));
+  });
+  return {balances, annualDiv};
+}
+
 document.getElementById('runBtn').addEventListener('click',()=>{
   const tA=document.getElementById('selA').value, tB=document.getElementById('selB').value;
   const lump=parseInt(document.getElementById('lump').value), monthly=parseInt(document.getElementById('dca').value);
   const yearsA=getYears(tA,selectedYears), yearsB=getYears(tB,selectedYears);
   const years=yearsA.filter(y=>yearsB.includes(y)); const n=years.length;
-  if(n<2){ alert('Not enough overlapping data. Try a shorter period.'); return; }
-  const balA=simulate(lump,monthly,years,tA), balB=simulate(lump,monthly,years,tB);
+  if(n<2){ alert(t('err_overlap')); return; }
+
+  const simA=simulateDetailed(lump,monthly,years,tA);
+  const simB=simulateDetailed(lump,monthly,years,tB);
+  const balA=simA.balances, balB=simB.balances;
+  const divA=simA.annualDiv, divB=simB.annualDiv;
+
   const dep=years.map((_,i)=>lump+monthly*12*(i+1));
   const rA=inflAdj(balA,years), rB=inflAdj(balB,years), rD=inflAdj(dep,years);
+
+  // Cumulative dividends
+  let cumA=0,cumB=0;
+  const cumDivA=divA.map(v=>{cumA+=v;return cumA;});
+  const cumDivB=divB.map(v=>{cumB+=v;return cumB;});
+  const totalDivA=cumDivA[n-1], totalDivB=cumDivB[n-1];
+  const lastDivA=divA[n-1], lastDivB=divB[n-1];
+
   const cgA=cagrCalc(rA[n-1],lump,n), cgB=cagrCalc(rB[n-1],lump,n);
   const aWins=rA[n-1]>=rB[n-1];
+  const divWinsA=totalDivA>=totalDivB;
+
+  // ── Metrics row 1: portfolio ──
   document.getElementById('metricsGrid').innerHTML=`
-    <div class="metric"><div class="metric-label">${tA} final (real)</div><div class="metric-val c-green">${fmt(rA[n-1])}</div><div class="metric-sub">CAGR ${pct(cgA)}</div></div>
-    <div class="metric"><div class="metric-label">${tB} final (real)</div><div class="metric-val c-purple">${fmt(rB[n-1])}</div><div class="metric-sub">CAGR ${pct(cgB)}</div></div>
-    <div class="metric"><div class="metric-label">Total deposited</div><div class="metric-val c-amber">${fmt(dep[n-1])}</div><div class="metric-sub">${fmt(lump)} + ${fmt(monthly)}/mo × ${n}yr</div></div>
-    <div class="metric"><div class="metric-label">Winner</div><div class="metric-val ${aWins?'c-green':'c-purple'}">${aWins?tA:tB}</div><div class="metric-sub">${fmt(Math.abs(rA[n-1]-rB[n-1]))} ahead</div></div>`;
-  document.getElementById('legend1').innerHTML=`<span class="legend-item"><span class="legend-swatch" style="background:#00d68f"></span>${tA}</span><span class="legend-item"><span class="legend-swatch" style="background:#8b7ff5"></span>${tB}</span><span class="legend-item"><span class="legend-swatch" style="background:#3a3f50"></span>Deposited</span>`;
-  document.getElementById('legend2').innerHTML=`<span class="legend-item"><span class="legend-swatch" style="background:#00d68f"></span>${tA}</span><span class="legend-item"><span class="legend-swatch" style="background:#8b7ff5"></span>${tB}</span>`;
+    <div class="metric"><div class="metric-label">${tA} ${t('final_real')}</div><div class="metric-val c-green">${fmt(rA[n-1])}</div><div class="metric-sub">CAGR ${pct(cgA)}</div></div>
+    <div class="metric"><div class="metric-label">${tB} ${t('final_real')}</div><div class="metric-val c-purple">${fmt(rB[n-1])}</div><div class="metric-sub">CAGR ${pct(cgB)}</div></div>
+    <div class="metric"><div class="metric-label">${t('total_dep')}</div><div class="metric-val c-amber">${fmt(dep[n-1])}</div><div class="metric-sub">${fmt(lump)} + ${fmt(monthly)}/mo × ${n}yr</div></div>
+    <div class="metric"><div class="metric-label">${t('portfolio_winner')}</div><div class="metric-val ${aWins?'c-green':'c-purple'}">${aWins?tA:tB}</div><div class="metric-sub">${fmt(Math.abs(rA[n-1]-rB[n-1]))} ${t('ahead')}</div></div>`;
+
+  // ── Metrics row 2: dividends ──
+  document.getElementById('divMetricsGrid').innerHTML=`
+    <div class="metric"><div class="metric-label">${tA} ${t('total_div')}</div><div class="metric-val c-green">${fmt(totalDivA)}</div><div class="metric-sub">${t('over_yrs',{n})}</div></div>
+    <div class="metric"><div class="metric-label">${tB} ${t('total_div')}</div><div class="metric-val c-purple">${fmt(totalDivB)}</div><div class="metric-sub">${t('over_yrs',{n})}</div></div>
+    <div class="metric"><div class="metric-label">${tA} ${t('last_yr_div')}</div><div class="metric-val c-green">${fmt(lastDivA)}</div><div class="metric-sub">yield ${(TICKERS[tA].data[years[n-1]].d*100).toFixed(2)}%</div></div>
+    <div class="metric"><div class="metric-label">${tB} ${t('last_yr_div')}</div><div class="metric-val c-purple">${fmt(lastDivB)}</div><div class="metric-sub">yield ${(TICKERS[tB].data[years[n-1]].d*100).toFixed(2)}%</div></div>`;
+
+  // ── Deep stats helpers ──────────────────────────────────────────────────
+  function tickerStats(ticker, yrs) {
+    const data = yrs.map(y => TICKERS[ticker].data[y]);
+    const yields = data.map(d => d.d);
+    const prices = data.map(d => d.p);
+    const totalReturns = data.map(d => d.p + d.d);
+
+    // Dividend yield current (last year)
+    const yieldNow = yields[yields.length-1];
+    // Div growth rates
+    function divCAGR(yLen) {
+      if (yLen >= yrs.length) return null;
+      const y0 = yields[yields.length-1-yLen], y1 = yields[yields.length-1];
+      if (!y0 || y0 <= 0) return null;
+      return Math.pow(y1/y0, 1/yLen)-1;
+    }
+    const dgr1  = yields.length>=2  ? (yields[yields.length-1]-yields[yields.length-2])/yields[yields.length-2] : null;
+    const dgr3  = divCAGR(3);
+    const dgr5  = divCAGR(5);
+    const dgr10 = divCAGR(10);
+
+    // Consecutive years of dividend growth
+    let consGrowth=0;
+    for(let i=yields.length-1;i>0;i--){ if(yields[i]>yields[i-1]) consGrowth++; else break; }
+    // Consecutive years of any payment
+    let consPay=0;
+    for(let i=yields.length-1;i>=0;i--){ if(yields[i]>0) consPay++; else break; }
+
+    // Growth metrics
+    const priceCAGR = cagrCalc(
+      data.reduce((acc,d)=>acc*(1+d.p),1),
+      1, yrs.length
+    );
+    const totalCAGR = cagrCalc(
+      data.reduce((acc,d)=>acc*(1+d.p+d.d),1),
+      1, yrs.length
+    );
+    const bestYear  = Math.max(...prices);
+    const worstYear = Math.min(...prices);
+    // Max drawdown proxy (worst single year)
+    const maxDD = worstYear;
+    // Volatility = std dev of annual total returns
+    const mean = totalReturns.reduce((a,b)=>a+b,0)/totalReturns.length;
+    const variance = totalReturns.reduce((a,b)=>a+Math.pow(b-mean,2),0)/totalReturns.length;
+    const vol = Math.sqrt(variance);
+    // Sharpe-like (total return CAGR / vol, risk-free ~4%)
+    const sharpe = vol > 0 ? (totalCAGR - 0.04) / vol : null;
+
+    return { yieldNow, dgr1, dgr3, dgr5, dgr10, consGrowth, consPay,
+             priceCAGR, totalCAGR, bestYear, worstYear, maxDD, vol, sharpe };
+  }
+
+  const sA = tickerStats(tA, years);
+  const sB = tickerStats(tB, years);
+
+  function fPct(v, dec=1) { return v===null ? '—' : (v>=0?'+':'')+(v*100).toFixed(dec)+'%'; }
+  function fPctPlain(v, dec=2) { return v===null ? '—' : (v*100).toFixed(dec)+'%'; }
+  function winner(vA, vB, higherBetter=true) {
+    if(vA===null||vB===null) return ['',''];
+    const aWin = higherBetter ? vA>=vB : vA<=vB;
+    return [aWin?'c-green':'', aWin?'':'c-purple'];
+  }
+
+  function statRow(label, vA, vB, fmtFn, higherBetter=true) {
+    const [cA,cB] = winner(
+      typeof vA==='number'?vA:null,
+      typeof vB==='number'?vB:null,
+      higherBetter
+    );
+    return `<div class="stat-row">
+      <span class="stat-label">${label}</span>
+      <span style="display:flex;gap:20px;min-width:160px;justify-content:flex-end;">
+        <span class="stat-val ${cA}">${fmtFn(vA)}</span>
+        <span class="stat-val ${cB}">${fmtFn(vB)}</span>
+      </span>
+    </div>`;
+  }
+
+  const colHeader = `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px 8px;border-bottom:1px solid var(--border);">
+    <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Metric</span>
+    <span style="display:flex;gap:20px;min-width:160px;justify-content:flex-end;">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--green);">${tA}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--purple);">${tB}</span>
+    </span>
+  </div>`;
+
+  document.getElementById('deepStatsGrid').innerHTML = colHeader +
+    statRow(t('s_yield'),      sA.yieldNow, sB.yieldNow, fPctPlain) +
+    statRow(t('s_dgr1'),       sA.dgr1,     sB.dgr1,     fPct) +
+    statRow(t('s_dgr3'),       sA.dgr3,     sB.dgr3,     fPct) +
+    statRow(t('s_dgr5'),       sA.dgr5,     sB.dgr5,     fPct) +
+    statRow(t('s_dgr10'),      sA.dgr10,    sB.dgr10,    fPct) +
+    statRow(t('s_cons_growth'),sA.consGrowth,sB.consGrowth,v=>v+' '+t('yr')) +
+    statRow(t('s_cons_pay'),   sA.consPay,  sB.consPay,  v=>v+' '+t('yr')) +
+    statRow(t('s_total_div'),  totalDivA,   totalDivB,   v=>fmt(v));
+
+  document.getElementById('growthStatsGrid').innerHTML = colHeader +
+    statRow(t('s_price_cagr'), sA.priceCAGR,  sB.priceCAGR,  fPct) +
+    statRow(t('s_total_cagr'), sA.totalCAGR,  sB.totalCAGR,  fPct) +
+    statRow(t('s_best'),       sA.bestYear,   sB.bestYear,   fPct) +
+    statRow(t('s_worst'),      sA.worstYear,  sB.worstYear,  fPct, false) +
+    statRow(t('s_vol'),        sA.vol,        sB.vol,        fPctPlain, false) +
+    statRow(t('s_sharpe'),     sA.sharpe,     sB.sharpe,     v=>v===null?'—':v.toFixed(2)) +
+    statRow(t('s_yoc'),        lastDivA/lump, lastDivB/lump, fPctPlain);
+
   const labels=years.map(String);
-  const tt={backgroundColor:'#1a1f2e',borderColor:'#2a2f40',borderWidth:1,titleColor:'#e8eaf0',bodyColor:'#8890a0'};
+  const isLight = document.documentElement.classList.contains('light');
+  const C = {
+    green:    isLight ? '#009962' : '#00b478',
+    greenBg:  isLight ? 'rgba(0,153,98,0.09)'   : 'rgba(0,180,120,0.08)',
+    purple:   isLight ? '#6c5fc7' : '#8b7ff5',
+    purpleBg: isLight ? 'rgba(108,95,199,0.09)'  : 'rgba(139,127,245,0.08)',
+    dep:      isLight ? '#c0c4d0' : '#3a3f50',
+    tick:     isLight ? '#9aa0b0' : '#5a6070',
+    grid:     isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)',
+    ttBg:     isLight ? '#ffffff' : '#1a1f2e',
+    ttBorder: isLight ? '#d0d4dc' : '#2a2f40',
+    ttTitle:  isLight ? '#111318' : '#e8eaf0',
+    ttBody:   isLight ? '#6b7280' : '#8890a0',
+    upPos:    isLight ? 'rgba(0,153,98,0.7)'    : 'rgba(0,180,120,0.7)',
+    upNeg:    isLight ? 'rgba(214,62,50,0.5)'   : 'rgba(245,86,74,0.5)',
+    purPos:   isLight ? 'rgba(108,95,199,0.7)'  : 'rgba(139,127,245,0.7)',
+    purNeg:   isLight ? 'rgba(214,62,50,0.4)'   : 'rgba(245,86,74,0.4)',
+  };
+  const tt={backgroundColor:C.ttBg,borderColor:C.ttBorder,borderWidth:1,titleColor:C.ttTitle,bodyColor:C.ttBody};
+
+  // Legend helpers
+  const lgn=(id,aLbl,bLbl,extra='')=>{ document.getElementById(id).innerHTML=`<span class="legend-item"><span class="legend-swatch" style="background:${C.green}"></span>${aLbl}</span><span class="legend-item"><span class="legend-swatch" style="background:${C.purple}"></span>${bLbl}</span>${extra}`; };
+  lgn('legend1',tA,tB,`<span class="legend-item"><span class="legend-swatch" style="background:${C.dep}"></span>${t('deposited')}</span>`);
+  lgn('legend2',tA,tB);
+  lgn('legend3',`${tA} ${t('div_income_lbl')}`,`${tB} ${t('div_income_lbl')}`);
+  lgn('legend4',`${tA} ${t('total_lbl')}`,`${tB} ${t('total_lbl')}`);
+
+  const scaleOpts = (yFmt) => ({
+    y:{ticks:{callback:yFmt,color:C.tick,font:{size:11}},grid:{color:C.grid},border:{display:false}},
+    x:{ticks:{color:C.tick,font:{size:11},autoSkip:false,maxRotation:45},grid:{display:false},border:{display:false}}
+  });
+  const dollarFmt = v=>'$'+(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v);
+  const gainFmt   = v=>(v<0?'-$':'$')+Math.abs(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v);
+
+  // ── Chart 1: portfolio value ──
   if(lc) lc.destroy();
   lc=new Chart(document.getElementById('lineChart'),{type:'line',data:{labels,datasets:[
-    {label:tA,data:rA.map(Math.round),borderColor:'#00d68f',backgroundColor:'rgba(0,214,143,0.07)',fill:true,tension:0.3,pointRadius:3,borderWidth:2},
-    {label:tB,data:rB.map(Math.round),borderColor:'#8b7ff5',backgroundColor:'rgba(139,127,245,0.07)',fill:true,tension:0.3,pointRadius:3,borderWidth:2},
-    {label:'Deposited',data:rD.map(Math.round),borderColor:'#3a3f50',fill:false,tension:0,pointRadius:2,borderWidth:1.5,borderDash:[4,3]}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},...tt}},
-    scales:{y:{ticks:{callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v),color:'#5a6070',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
-      x:{ticks:{color:'#5a6070',font:{size:11},autoSkip:false,maxRotation:45},grid:{display:false},border:{display:false}}}}});
+    {label:tA,data:rA.map(Math.round),borderColor:C.green,backgroundColor:C.greenBg,fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {label:tB,data:rB.map(Math.round),borderColor:C.purple,backgroundColor:C.purpleBg,fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'Deposited',data:rD.map(Math.round),borderColor:C.dep,fill:false,tension:0,pointRadius:2,borderWidth:1.5,borderDash:[4,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},...tt}},scales:scaleOpts(dollarFmt)}});
+
+  // ── Chart 2: annual dividend income bar ──
+  if(dbc) dbc.destroy();
+  dbc=new Chart(document.getElementById('divBarChart'),{type:'bar',data:{labels,datasets:[
+    {label:`${tA} dividend`,data:divA,backgroundColor:C.upPos,borderRadius:3},
+    {label:`${tB} dividend`,data:divB,backgroundColor:C.purPos,borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' dividend income'},...tt}},scales:scaleOpts(dollarFmt)}});
+
+  // ── Chart 3: cumulative dividend line ──
+  if(dcc) dcc.destroy();
+  dcc=new Chart(document.getElementById('divCumChart'),{type:'line',data:{labels,datasets:[
+    {label:`${tA} cumulative`,data:cumDivA,borderColor:C.green,backgroundColor:C.greenBg,fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {label:`${tB} cumulative`,data:cumDivB,borderColor:C.purple,backgroundColor:C.purpleBg,fill:true,tension:0.3,pointRadius:3,borderWidth:2}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' total'},...tt}},scales:scaleOpts(dollarFmt)}});
+
+  // ── Chart 4: annual real gain/loss ──
   const gA=rA.map((v,i)=>Math.round(v-(i===0?lump:rA[i-1])-monthly*12));
   const gB=rB.map((v,i)=>Math.round(v-(i===0?lump:rB[i-1])-monthly*12));
   if(bc) bc.destroy();
   bc=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels,datasets:[
-    {label:tA,data:gA,backgroundColor:gA.map(v=>v>=0?'rgba(0,214,143,0.7)':'rgba(245,86,74,0.5)'),borderRadius:3},
-    {label:tB,data:gB,backgroundColor:gB.map(v=>v>=0?'rgba(139,127,245,0.7)':'rgba(245,86,74,0.4)'),borderRadius:3}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},...tt}},
-    scales:{y:{ticks:{callback:v=>(v<0?'-$':'$')+Math.abs(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v),color:'#5a6070',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
-      x:{ticks:{color:'#5a6070',font:{size:11},autoSkip:false,maxRotation:45},grid:{display:false},border:{display:false}}}}});
-  let rows=`<thead><tr><th>Year</th><th>${tA} return</th><th>${tA} div</th><th>${tA} real bal</th><th>${tB} return</th><th>${tB} div</th><th>${tB} real bal</th><th>Leader</th></tr></thead><tbody>`;
+    {label:tA,data:gA,backgroundColor:gA.map(v=>v>=0?C.upPos:C.upNeg),borderRadius:3},
+    {label:tB,data:gB,backgroundColor:gB.map(v=>v>=0?C.purPos:C.purNeg),borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},...tt}},scales:scaleOpts(gainFmt)}});
+
+  // ── Table ──
+  let rows=`<thead><tr><th>${t('th_year')}</th><th>${tA} ${t('th_return')}</th><th>${tA} ${t('th_div_usd')}</th><th>${tA} ${t('th_div_yield')}</th><th>${tA} ${t('th_real_bal')}</th><th>${tB} ${t('th_return')}</th><th>${tB} ${t('th_div_usd')}</th><th>${tB} ${t('th_div_yield')}</th><th>${tB} ${t('th_real_bal')}</th><th>${t('th_leader')}</th></tr></thead><tbody>`;
   years.forEach((y,i)=>{
     const dA=TICKERS[tA].data[y],dB=TICKERS[tB].data[y];
-    rows+=`<tr><td>${y}</td><td class="${dA.p>=0?'up':'down'}">${pct(dA.p)}</td><td>${(dA.d*100).toFixed(2)}%</td><td class="c-green">${fmt(rA[i])}</td><td class="${dB.p>=0?'up':'down'}">${pct(dB.p)}</td><td>${(dB.d*100).toFixed(2)}%</td><td class="c-purple">${fmt(rB[i])}</td><td>${rA[i]>=rB[i]?`<span class="up">${tA}</span>`:`<span class="c-purple">${tB}</span>`}</td></tr>`;
+    rows+=`<tr>
+      <td>${y}</td>
+      <td class="${dA.p>=0?'up':'down'}">${pct(dA.p)}</td>
+      <td class="c-green">${fmt(divA[i])}</td>
+      <td>${(dA.d*100).toFixed(2)}%</td>
+      <td class="c-green">${fmt(rA[i])}</td>
+      <td class="${dB.p>=0?'up':'down'}">${pct(dB.p)}</td>
+      <td class="c-purple">${fmt(divB[i])}</td>
+      <td>${(dB.d*100).toFixed(2)}%</td>
+      <td class="c-purple">${fmt(rB[i])}</td>
+      <td>${rA[i]>=rB[i]?`<span class="up">${tA}</span>`:`<span class="c-purple">${tB}</span>`}</td>
+    </tr>`;
   });
   document.getElementById('statsTable').innerHTML=rows+'</tbody>';
   document.getElementById('results').classList.remove('hidden');
@@ -597,14 +818,14 @@ function renderTickerList() {
     row.innerHTML=`<span class="sym">${sym}</span><span class="name">${v.name}</span>
       <span class="cat-badge">${v.cat}</span>
       <span class="yrs">${Math.min(...years)}–${Math.max(...years)}</span>
-      ${isCustom?`<button class="btn btn-red" style="padding:5px 10px;font-size:11px;" onclick="deleteTicker('${sym}')">Remove</button>`:'<span style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;padding:0 4px;">built-in</span>'}`;
+      ${isCustom?`<button class="btn btn-red" style="padding:5px 10px;font-size:11px;" onclick="deleteTicker('${sym}')">${t('remove')}</button>`:`<span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 4px;">${t('built_in')}</span>`}`;
     list.appendChild(row);
   });
 }
 
 window.deleteTicker = function(sym) {
-  if(!confirm(`Remove ${sym} from the library?`)) return;
-  delete TICKERS[sym]; saveCustom(); buildSelects(); renderTickerList(); showToast(`${sym} removed`);
+  if(!confirm(t('confirm_remove',{sym}))) return;
+  delete TICKERS[sym]; saveCustom(); buildSelects(); renderTickerList(); showToast(t('toast_removed',{sym}));
 };
 
 // Build year input grid
@@ -625,8 +846,8 @@ document.getElementById('addTickerBtn').addEventListener('click', ()=>{
   const name = document.getElementById('newName').value.trim();
   const cat = document.getElementById('newCat').value;
   const msg = document.getElementById('addMsg');
-  if(!sym||!name){ msg.style.color='var(--red)'; msg.textContent='Ticker symbol and name are required.'; return; }
-  if(!/^[A-Z.\-]{1,8}$/.test(sym)){ msg.style.color='var(--red)'; msg.textContent='Invalid symbol format.'; return; }
+  if(!sym||!name){ msg.style.color='var(--red)'; msg.textContent=t('err_required'); return; }
+  if(!/^[A-Z.\-]{1,8}$/.test(sym)){ msg.style.color='var(--red)'; msg.textContent=t('err_symbol'); return; }
   const data={};
   ALL_YEARS.forEach(y=>{
     const p=parseFloat(document.getElementById('p_'+y).value);
@@ -634,10 +855,10 @@ document.getElementById('addTickerBtn').addEventListener('click', ()=>{
     if(!isNaN(p)&&!isNaN(d)) data[y]={p,d};
     else if(!isNaN(p)) data[y]={p,d:0};
   });
-  if(Object.keys(data).length===0){ msg.style.color='var(--red)'; msg.textContent='Enter data for at least one year.'; return; }
+  if(Object.keys(data).length===0){ msg.style.color='var(--red)'; msg.textContent=t('err_no_data'); return; }
   TICKERS[sym]={name,cat,data}; saveCustom(); buildSelects();
-  msg.style.color='var(--green)'; msg.textContent=`✓ ${sym} added with ${Object.keys(data).length} years of data.`;
-  showToast(`${sym} added to library`);
+  msg.style.color='var(--green)'; msg.textContent=t('added_msg',{sym,n:Object.keys(data).length});
+  showToast(t('toast_added',{sym}));
   setTimeout(()=>{ document.getElementById('newSymbol').value=''; document.getElementById('newName').value=''; buildYearGrid(); msg.textContent=''; },1500);
 });
 
@@ -655,7 +876,7 @@ document.getElementById('exportBtn').addEventListener('click',()=>{
   const blob = new Blob([json],{type:'application/json'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='my_tickers.json'; a.click();
-  showToast('Exported to my_tickers.json');
+  showToast(t('toast_exported'));
 });
 
 document.getElementById('importTriggerBtn').addEventListener('click',()=>{
@@ -673,8 +894,8 @@ document.getElementById('doImportBtn').addEventListener('click',()=>{
     saveCustom(); buildSelects(); renderTickerList();
     document.getElementById('importArea').classList.add('hidden');
     document.getElementById('importJson').value='';
-    showToast(`Imported ${count} ticker(s)`);
-  } catch(e){ alert('Invalid JSON. Check the format and try again.'); }
+    showToast(t('toast_imported',{n:count}));
+  } catch(e){ alert(t('err_json')); }
 });
 
 // ── Toast ────────────────────────────────────────────────────────────────
@@ -682,6 +903,315 @@ function showToast(msg) {
   const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(), 2200);
 }
+
+// ── i18n ─────────────────────────────────────────────────────────────────
+const LANG = {
+  en: {
+    subtitle:        'Compare ETFs &amp; stocks with DRIP reinvestment, DCA &amp; inflation-adjusted returns',
+    tab_backtest:    'Backtest',
+    tab_editor:      'Manage Tickers',
+    tab_guide:       'Code Guide',
+    ticker_a:        'Ticker A',
+    ticker_b:        'Ticker B',
+    period:          'Backtest period',
+    lump_sum:        'Initial lump sum',
+    monthly_dca:     'Monthly DCA',
+    run_btn:         'Run Backtest',
+    div_metrics:     'Dividend metrics',
+    growth_metrics:  'Growth &amp; risk metrics',
+    chart_portfolio: 'Portfolio value — inflation-adjusted real $',
+    chart_div_annual:'Annual dividend income — actual $ received per year',
+    chart_div_cum:   'Cumulative dividend income — total dividends collected',
+    chart_gain:      'Annual real gain / loss',
+    chart_table:     'Year-by-year breakdown',
+    disclaimer:      'Data: verified historical annual returns (2004–2024) · DRIP reinvested annually · US CPI inflation-adjusted<br>Educational purposes only — not financial advice',
+    credit:          'Built by Taweewut',
+    ticker_library:  'Ticker library',
+    export_json:     'Export JSON',
+    import_json:     'Import JSON',
+    add_ticker:      'Add new ticker',
+    add_ticker_sub:  'fill in annual data below — price return % and dividend yield %',
+    data_source_tip: '<strong>Where to find data:</strong> Go to <strong>macrotrends.net</strong> → search your ticker → "Annual Returns" for price return, "Dividend Yield History" for yield. Enter as decimals: 12.5% = <strong>0.125</strong>, 3.2% = <strong>0.032</strong>',
+    ticker_symbol:   'Ticker symbol',
+    full_name:       'Full name',
+    category:        'Category',
+    price_return_hint:'Price return (p) — e.g. +0.125 or -0.045',
+    div_yield_hint:  'Div yield (d) — e.g. 0.032 (0 if none)',
+    add_to_library:  'Add to library',
+    clear:           'Clear',
+    paste_json:      'Paste JSON ticker data below and click Import',
+    import_btn:      'Import',
+    cancel:          'Cancel',
+    // dynamic strings (used in JS)
+    final_real:      'final (real)',
+    total_dep:       'Total deposited',
+    total_div:       'total dividends',
+    last_yr_div:     'last yr div',
+    over_yrs:        'over {n} years',
+    portfolio_winner:'Portfolio winner',
+    ahead:           'ahead',
+    deposited:       'Deposited',
+    div_income_lbl:  'dividend income',
+    total_lbl:       'total',
+    // stat rows
+    s_yield:         'Dividend yield (current)',
+    s_dgr1:          'Div growth rate TTM',
+    s_dgr3:          'Div growth rate 3Y (CAGR)',
+    s_dgr5:          'Div growth rate 5Y (CAGR)',
+    s_dgr10:         'Div growth rate 10Y (CAGR)',
+    s_cons_growth:   'Consecutive yrs div growth',
+    s_cons_pay:      'Consecutive yrs div payments',
+    s_total_div:     'Total dividends collected',
+    s_price_cagr:    'Price CAGR',
+    s_total_cagr:    'Total return CAGR (price+div)',
+    s_best:          'Best single year',
+    s_worst:         'Worst single year',
+    s_vol:           'Annual volatility (std dev)',
+    s_sharpe:        'Sharpe-like ratio',
+    s_yoc:           'Yield on cost (last yr div/$)',
+    // table headers
+    th_year:         'Year', th_return:'return', th_div_usd:'div $',
+    th_div_yield:    'div yield', th_real_bal:'real bal', th_leader:'Leader',
+    built_in:        'built-in',
+    remove:          'Remove',
+    yr:              'yr',
+    // toast / alert
+    toast_added:     '{sym} added to library',
+    toast_removed:   '{sym} removed',
+    toast_exported:  'Exported to my_tickers.json',
+    toast_imported:  'Imported {n} ticker(s)',
+    err_required:    'Ticker symbol and name are required.',
+    err_symbol:      'Invalid symbol format.',
+    err_no_data:     'Enter data for at least one year.',
+    err_overlap:     'Not enough overlapping data. Try a shorter period.',
+    err_json:        'Invalid JSON. Check the format and try again.',
+    confirm_remove:  'Remove {sym} from the library?',
+    added_msg:       '✓ {sym} added with {n} years of data.',
+    guide_title:     'How to add tickers by editing the code',
+    guide_tip:       '<strong>Tip:</strong> The visual editor (Manage Tickers tab) is the easiest way to add tickers without touching code. Use this guide if you prefer to edit the HTML file directly — useful when adding many tickers at once.',
+    guide_s1:        '① Locate the TICKERS object',
+    guide_s1_body:   'Open <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">index.html</code> in any text editor. Search for <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">const TICKERS = {</code> — this is around line 140.',
+    guide_s2:        '② Data structure for one ticker',
+    guide_s3:        '③ Where to get the numbers',
+    guide_s3_p:      'Price return (p)',
+    guide_s3_p_v:    'macrotrends.net → [TICKER] → "Annual Stock Return" — use Total Return column, divide by 100',
+    guide_s3_d:      'Dividend yield (d)',
+    guide_s3_d_v:    'macrotrends.net → [TICKER] → "Dividend Yield" → Annual average — divide by 100. Use 0 for non-dividend stocks',
+    guide_s3_f:      'Format',
+    guide_s3_f_v:    'Decimals, not percent: 12.5% → <strong style="color:var(--green);">0.125</strong>, -4.5% → <strong style="color:var(--red);">-0.045</strong>, 3.2% → <strong style="color:var(--purple);">0.032</strong>',
+    guide_s4:        '④ Paste it in the right place',
+    guide_s4_body:   'Add your new entry inside the <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">TICKERS = { ... }</code> object. Each entry ends with a comma except the last one:',
+    guide_s5:        '⑤ Save and refresh',
+    guide_s5_body:   'Save the file, refresh the browser (or re-upload to GitHub Pages). Your ticker will appear automatically in both dropdowns, grouped by the <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">cat</code> field.',
+    guide_mistakes:  'Common mistakes',
+    guide_m1_k:      'p: 12.5',
+    guide_m1_v:      'Wrong — this is 1250%, not 12.5%. Always use decimals.',
+    guide_m2_k:      'Missing years',
+    guide_m2_v:      'If a year is missing, the overlap with other tickers shrinks. Fill in as many years as possible.',
+    guide_m3_k:      'Trailing comma on last item',
+    guide_m3_v:      'Will cause a JS error. The last entry in TICKERS should NOT have a comma after the closing <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">}</code>.',
+    guide_m4_k:      'd: undefined for growth',
+    guide_m4_v:      'If a stock pays no dividend, use <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">d: 0</code>, not omitting d entirely.',
+  },
+  th: {
+    subtitle:        'เปรียบเทียบ ETF และหุ้นด้วย DRIP, DCA และผลตอบแทนที่ปรับด้วยเงินเฟ้อ',
+    tab_backtest:    'ทดสอบย้อนหลัง',
+    tab_editor:      'จัดการ Ticker',
+    tab_guide:       'คู่มือโค้ด',
+    ticker_a:        'Ticker A',
+    ticker_b:        'Ticker B',
+    period:          'ช่วงเวลาทดสอบ',
+    lump_sum:        'เงินลงทุนครั้งแรก',
+    monthly_dca:     'DCA รายเดือน',
+    run_btn:         'รันการทดสอบ',
+    div_metrics:     'ตัวชี้วัดเงินปันผล',
+    growth_metrics:  'ตัวชี้วัดการเติบโตและความเสี่ยง',
+    chart_portfolio: 'มูลค่าพอร์ตโฟลิโอ — ปรับเงินเฟ้อแล้ว (บาทจริง)',
+    chart_div_annual:'รายได้เงินปันผลรายปี — เงินปันผลที่รับจริงแต่ละปี',
+    chart_div_cum:   'รายได้เงินปันผลสะสม — ยอดรวมเงินปันผลที่เก็บได้ทั้งหมด',
+    chart_gain:      'กำไร / ขาดทุนรายปีที่แท้จริง',
+    chart_table:     'สรุปรายปี',
+    disclaimer:      'ข้อมูล: ผลตอบแทนประวัติศาสตร์รายปีที่ตรวจสอบแล้ว (2547–2567) · นำเงินปันผลกลับไปลงทุนใหม่ · ปรับด้วย CPI สหรัฐฯ<br>เพื่อการศึกษาเท่านั้น — ไม่ใช่คำแนะนำทางการเงิน',
+    credit:          'พัฒนาโดย ทวีวุฒิ',
+    ticker_library:  'คลัง Ticker',
+    export_json:     'ส่งออก JSON',
+    import_json:     'นำเข้า JSON',
+    add_ticker:      'เพิ่ม Ticker ใหม่',
+    add_ticker_sub:  'กรอกข้อมูลรายปีด้านล่าง — ผลตอบแทนราคา % และอัตราเงินปันผล %',
+    data_source_tip: '<strong>หาข้อมูลได้จาก:</strong> ไปที่ <strong>macrotrends.net</strong> → ค้นหา ticker → "Annual Returns" สำหรับผลตอบแทนราคา, "Dividend Yield History" สำหรับ yield. ใส่เป็นทศนิยม: 12.5% = <strong>0.125</strong>, 3.2% = <strong>0.032</strong>',
+    ticker_symbol:   'สัญลักษณ์ Ticker',
+    full_name:       'ชื่อเต็ม',
+    category:        'หมวดหมู่',
+    price_return_hint:'ผลตอบแทนราคา (p) — เช่น +0.125 หรือ -0.045',
+    div_yield_hint:  'อัตราเงินปันผล (d) — เช่น 0.032 (ใส่ 0 ถ้าไม่มี)',
+    add_to_library:  'เพิ่มในคลัง',
+    clear:           'ล้างข้อมูล',
+    paste_json:      'วาง JSON ด้านล่างแล้วกดนำเข้า',
+    import_btn:      'นำเข้า',
+    cancel:          'ยกเลิก',
+    final_real:      'มูลค่าสุดท้าย (จริง)',
+    total_dep:       'ยอดลงทุนรวม',
+    total_div:       'เงินปันผลรวม',
+    last_yr_div:     'ปันผลปีล่าสุด',
+    over_yrs:        'ใน {n} ปี',
+    portfolio_winner:'พอร์ตชนะ',
+    ahead:           'นำอยู่',
+    deposited:       'เงินลงทุน',
+    div_income_lbl:  'รายได้เงินปันผล',
+    total_lbl:       'รวม',
+    s_yield:         'อัตราเงินปันผล (ปัจจุบัน)',
+    s_dgr1:          'อัตราเติบโตปันผล TTM',
+    s_dgr3:          'อัตราเติบโตปันผล 3 ปี (CAGR)',
+    s_dgr5:          'อัตราเติบโตปันผล 5 ปี (CAGR)',
+    s_dgr10:         'อัตราเติบโตปันผล 10 ปี (CAGR)',
+    s_cons_growth:   'ปีที่เพิ่มปันผลต่อเนื่อง',
+    s_cons_pay:      'ปีที่จ่ายปันผลต่อเนื่อง',
+    s_total_div:     'เงินปันผลรวมที่ได้รับ',
+    s_price_cagr:    'CAGR ราคา',
+    s_total_cagr:    'CAGR ผลตอบแทนรวม (ราคา+ปันผล)',
+    s_best:          'ปีที่ดีที่สุด',
+    s_worst:         'ปีที่แย่ที่สุด',
+    s_vol:           'ความผันผวนรายปี (ส่วนเบี่ยงเบน)',
+    s_sharpe:        'อัตราส่วน Sharpe',
+    s_yoc:           'Yield on Cost (ปันผลปีล่าสุด/เงินต้น)',
+    th_year:         'ปี', th_return:'ผลตอบแทน', th_div_usd:'ปันผล ($)',
+    th_div_yield:    'yield ปันผล', th_real_bal:'มูลค่าจริง', th_leader:'ผู้นำ',
+    built_in:        'ค่าเริ่มต้น',
+    remove:          'ลบ',
+    yr:              'ปี',
+    toast_added:     'เพิ่ม {sym} แล้ว',
+    toast_removed:   'ลบ {sym} แล้ว',
+    toast_exported:  'ส่งออกเป็น my_tickers.json แล้ว',
+    toast_imported:  'นำเข้า {n} ticker แล้ว',
+    err_required:    'กรุณากรอกสัญลักษณ์และชื่อ ticker',
+    err_symbol:      'รูปแบบสัญลักษณ์ไม่ถูกต้อง',
+    err_no_data:     'กรุณากรอกข้อมูลอย่างน้อย 1 ปี',
+    err_overlap:     'ข้อมูลไม่เพียงพอ กรุณาเลือกช่วงเวลาที่สั้นลง',
+    err_json:        'JSON ไม่ถูกต้อง กรุณาตรวจสอบรูปแบบแล้วลองใหม่',
+    confirm_remove:  'ต้องการลบ {sym} ออกจากคลังหรือไม่?',
+    added_msg:       '✓ เพิ่ม {sym} แล้ว ({n} ปีข้อมูล)',
+    guide_title:     'วิธีเพิ่ม Ticker ด้วยการแก้ไขโค้ด',
+    guide_tip:       '<strong>เคล็ดลับ:</strong> ตัวแก้ไขแบบภาพ (แท็บ "จัดการ Ticker") เป็นวิธีที่ง่ายที่สุดในการเพิ่ม ticker โดยไม่ต้องแตะโค้ด ใช้คู่มือนี้หากต้องการแก้ไขไฟล์ HTML โดยตรง — เหมาะสำหรับการเพิ่ม ticker หลายตัวพร้อมกัน',
+    guide_s1:        '① ค้นหา object TICKERS',
+    guide_s1_body:   'เปิดไฟล์ <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">index.html</code> ด้วย text editor ใดก็ได้ ค้นหา <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">const TICKERS = {</code> — อยู่ประมาณบรรทัดที่ 140',
+    guide_s2:        '② โครงสร้างข้อมูลของ ticker หนึ่งตัว',
+    guide_s3:        '③ หาตัวเลขได้จากไหน',
+    guide_s3_p:      'ผลตอบแทนราคา (p)',
+    guide_s3_p_v:    'macrotrends.net → ค้นหา [TICKER] → "Annual Stock Return" — ใช้คอลัมน์ Total Return หารด้วย 100',
+    guide_s3_d:      'อัตราเงินปันผล (d)',
+    guide_s3_d_v:    'macrotrends.net → ค้นหา [TICKER] → "Dividend Yield" → ค่าเฉลี่ยรายปี หารด้วย 100 ใส่ 0 สำหรับหุ้นที่ไม่จ่ายปันผล',
+    guide_s3_f:      'รูปแบบ',
+    guide_s3_f_v:    'ใช้ทศนิยม ไม่ใช่เปอร์เซ็นต์: 12.5% → <strong style="color:var(--green);">0.125</strong>, -4.5% → <strong style="color:var(--red);">-0.045</strong>, 3.2% → <strong style="color:var(--purple);">0.032</strong>',
+    guide_s4:        '④ วางในตำแหน่งที่ถูกต้อง',
+    guide_s4_body:   'เพิ่ม entry ใหม่ภายใน object <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">TICKERS = { ... }</code> โดยทุก entry ลงท้ายด้วย comma ยกเว้น entry สุดท้าย:',
+    guide_s5:        '⑤ บันทึกและรีเฟรช',
+    guide_s5_body:   'บันทึกไฟล์และรีเฟรชเบราว์เซอร์ (หรืออัปโหลดขึ้น GitHub Pages ใหม่) ticker ของคุณจะปรากฏในเมนูดรอปดาวน์โดยอัตโนมัติ จัดกลุ่มตามฟิลด์ <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">cat</code>',
+    guide_mistakes:  'ข้อผิดพลาดที่พบบ่อย',
+    guide_m1_k:      'p: 12.5',
+    guide_m1_v:      'ผิด — นี่คือ 1250% ไม่ใช่ 12.5% ต้องใช้ทศนิยมเสมอ',
+    guide_m2_k:      'ปีที่ขาดหายไป',
+    guide_m2_v:      'ถ้าปีไหนขาดหายไป ช่วงเวลาที่ทับซ้อนกับ ticker อื่นจะลดลง ควรกรอกข้อมูลให้ครบมากที่สุด',
+    guide_m3_k:      'มี comma ต่อท้าย entry สุดท้าย',
+    guide_m3_v:      'จะทำให้เกิด JS error โดย entry สุดท้ายใน TICKERS ต้องไม่มี comma หลังวงเล็บปิด <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">}</code>',
+    guide_m4_k:      'd: undefined สำหรับ growth stock',
+    guide_m4_v:      'ถ้าหุ้นไม่จ่ายปันผล ให้ใส่ <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">d: 0</code> อย่าละเว้นฟิลด์ d',
+  }
+};
+
+let currentLang = 'en';
+function t(key, vars={}) {
+  let str = (LANG[currentLang]||LANG.en)[key] || LANG.en[key] || key;
+  Object.entries(vars).forEach(([k,v])=>{ str=str.replace('{'+k+'}',v); });
+  return str;
+}
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.innerHTML = t(el.getAttribute('data-i18n'));
+  });
+  // Ticker library header special case (keep count span)
+  const tl = document.querySelector('h2[data-i18n="ticker_library"]');
+  if(tl) tl.innerHTML = t('ticker_library') + ` <span style="font-size:13px;font-weight:400;color:var(--muted2);font-family:'DM Mono',monospace;" id="tickerCount">${document.getElementById('tickerCount')?.textContent||''}</span>`;
+  document.getElementById('langLabel').textContent = currentLang==='en' ? 'ภาษาไทย' : 'English';
+  renderGuide();
+}
+
+function renderGuide() {
+  const pre = (code) => `<pre style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;overflow-x:auto;font-size:11px;line-height:1.8;color:var(--text);">${code}</pre>`;
+  const step = (label) => `<div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">${label}</div>`;
+  const tdStyle = `padding:8px 0;color:var(--text);min-width:140px;`;
+  const tdVal = `padding:8px 0;`;
+  document.getElementById('guideContent').innerHTML = `
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:1.25rem;">${t('guide_title')}</h2>
+    <div class="info-box" style="margin-bottom:1.5rem;">${t('guide_tip')}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;line-height:1.9;color:var(--muted2);">
+      ${step(t('guide_s1'))}
+      <p style="margin-bottom:12px;">${t('guide_s1_body')}</p>
+      ${step(t('guide_s2'))}
+      ${pre(`"VTI": {
+  name: "Vanguard Total Market",
+  cat:  "Blend ETF",
+  data: {
+    2020: { p: 0.212, d: 0.016 },
+    2021: { p: 0.255, d: 0.013 },
+    2022: { p: -0.193, d: 0.016 },
+    2023: { p: 0.259, d: 0.014 },
+    2024: { p: 0.239, d: 0.014 }
+  }
+},`)}
+      ${step(t('guide_s3'))}
+      <table style="width:100%;border-collapse:collapse;margin-bottom:1rem;">
+        <tr style="border-bottom:1px solid var(--border);"><td style="${tdStyle}">${t('guide_s3_p')}</td><td style="${tdVal}">${t('guide_s3_p_v')}</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="${tdStyle}">${t('guide_s3_d')}</td><td style="${tdVal}">${t('guide_s3_d_v')}</td></tr>
+        <tr><td style="${tdStyle}">${t('guide_s3_f')}</td><td style="${tdVal}">${t('guide_s3_f_v')}</td></tr>
+      </table>
+      ${step(t('guide_s4'))}
+      <p style="margin-bottom:8px;">${t('guide_s4_body')}</p>
+      ${pre(`const TICKERS = {
+  "VYM": { ... },
+  "QQQ": { ... },
+  "VTI": { ... },   // &lt;-- new ticker
+  "NVDA": { ... }   // last — no trailing comma
+};`)}
+      ${step(t('guide_s5'))}
+      <p style="margin-bottom:1.5rem;">${t('guide_s5_body')}</p>
+      <div style="color:var(--amber);font-size:13px;font-weight:500;margin-bottom:8px;">${t('guide_mistakes')}</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:7px 0;color:var(--red);min-width:180px;">${t('guide_m1_k')}</td><td style="padding:7px 0;">${t('guide_m1_v')}</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:7px 0;color:var(--red);">${t('guide_m2_k')}</td><td style="padding:7px 0;">${t('guide_m2_v')}</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:7px 0;color:var(--red);">${t('guide_m3_k')}</td><td style="padding:7px 0;">${t('guide_m3_v')}</td></tr>
+        <tr><td style="padding:7px 0;color:var(--red);">${t('guide_m4_k')}</td><td style="padding:7px 0;">${t('guide_m4_v')}</td></tr>
+      </table>
+    </div>`;
+}
+
+document.getElementById('langSwitcher').addEventListener('click',()=>{
+  currentLang = currentLang==='en' ? 'th' : 'en';
+  try{ localStorage.setItem('drip_lang', currentLang); }catch(e){}
+  applyLang();
+});
+
+(function(){
+  let saved; try{ saved=localStorage.getItem('drip_lang'); }catch(e){}
+  if(saved==='th'){ currentLang='th'; applyLang(); }
+})();
+const moonSVG=`<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+const sunSVG=`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+
+function applyTheme(light) {
+  document.documentElement.classList.toggle('light', light);
+  document.getElementById('themeIcon').innerHTML = light ? sunSVG : moonSVG;
+  document.getElementById('themeLabel').textContent = light ? 'Dark' : 'Light';
+  try { localStorage.setItem('drip_theme', light?'light':'dark'); } catch(e){}
+}
+
+(function(){
+  let saved; try{ saved=localStorage.getItem('drip_theme'); }catch(e){}
+  applyTheme(saved==='light');
+})();
+
+document.getElementById('themeSwitcher').addEventListener('click',()=>{
+  applyTheme(!document.documentElement.classList.contains('light'));
+});
 </script>
 </body>
 </html>
