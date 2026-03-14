@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRIP Backtester — Dividend vs Growth</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0b0e14;--surface:#12161f;--surface2:#1a1f2e;--surface3:#222840;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+    --text:#e8eaf0;--muted:#5a6070;--muted2:#8890a0;
+    --green:#00d68f;--green-dim:rgba(0,214,143,0.12);
+    --purple:#8b7ff5;--amber:#f5a623;--red:#f5564a;--blue:#4da6ff;
+    --radius:10px;--radius-lg:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+  .grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+    background-size:40px 40px;}
+  .wrap{max-width:980px;margin:0 auto;padding:2rem 1.5rem 5rem;position:relative;z-index:1;}
+
+  /* ── Header ── */
+  header{text-align:center;margin-bottom:2rem;padding-top:1rem;}
+  .tag{display:inline-block;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;color:var(--green);
+    border:1px solid rgba(0,214,143,0.3);border-radius:4px;padding:3px 10px;margin-bottom:1rem;text-transform:uppercase;}
+  h1{font-size:clamp(1.8rem,5vw,3rem);font-weight:800;line-height:1.1;letter-spacing:-0.03em;}
+  h1 span{color:var(--green);}
+  .subtitle{color:var(--muted2);font-size:0.9rem;margin-top:0.5rem;}
+
+  /* ── Nav tabs ── */
+  .tab-nav{display:flex;gap:4px;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border2);
+    border-radius:var(--radius-lg);padding:5px;}
+  .tab-btn{flex:1;background:transparent;border:none;border-radius:var(--radius);color:var(--muted2);
+    font-family:'Syne',sans-serif;font-size:13px;font-weight:600;padding:9px 0;cursor:pointer;transition:all 0.15s;text-align:center;}
+  .tab-btn.active{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+  .tab-btn:hover:not(.active){color:var(--text);}
+  .tab-panel{display:none;} .tab-panel.active{display:block;}
+
+  /* ── Cards ── */
+  .card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.5rem;}
+
+  /* ── Form elements ── */
+  .controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+  @media(max-width:600px){.controls-grid{grid-template-columns:1fr;}}
+  .field-label{display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:6px;}
+  .ticker-row{display:flex;gap:8px;align-items:center;}
+  .color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  select,input[type=text],input[type=number]{width:100%;background:var(--surface2);border:1px solid var(--border2);
+    border-radius:var(--radius);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;
+    outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;transition:border-color 0.2s;}
+  select:focus,input[type=text]:focus,input[type=number]:focus{border-color:var(--green);}
+  input[type=number]{cursor:text;}
+  .period-row{display:flex;gap:8px;}
+  .period-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+    color:var(--muted2);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;padding:9px 0;cursor:pointer;transition:all 0.15s;}
+  .period-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+  .period-btn:hover:not(.active){border-color:var(--border2);color:var(--text);}
+  .slider-field label{display:flex;justify-content:space-between;align-items:center;
+    font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:6px;}
+  .slider-field label span{color:var(--text);font-size:13px;}
+  input[type=range]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--surface2);
+    border-radius:2px;outline:none;border:1px solid var(--border);cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--green);cursor:pointer;}
+
+  /* ── Buttons ── */
+  .run-btn{width:100%;margin-top:1.25rem;background:var(--green);color:#0b0e14;border:none;border-radius:var(--radius);
+    font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.05em;padding:13px;cursor:pointer;transition:opacity 0.2s;text-transform:uppercase;}
+  .run-btn:hover{opacity:0.88;}
+  .btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);
+    border-radius:var(--radius);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;
+    padding:9px 16px;cursor:pointer;transition:all 0.15s;}
+  .btn:hover{border-color:var(--border2);background:var(--surface3);}
+  .btn-green{background:var(--green-dim);border-color:rgba(0,214,143,0.4);color:var(--green);}
+  .btn-green:hover{background:rgba(0,214,143,0.2);}
+  .btn-red{background:rgba(245,86,74,0.1);border-color:rgba(245,86,74,0.3);color:var(--red);}
+  .btn-red:hover{background:rgba(245,86,74,0.18);}
+  .btn-amber{background:rgba(245,166,35,0.1);border-color:rgba(245,166,35,0.3);color:var(--amber);}
+  .btn-amber:hover{background:rgba(245,166,35,0.18);}
+
+  /* ── Chips ── */
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+  .chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+    font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);padding:3px 9px;cursor:pointer;transition:all 0.15s;}
+  .chip-a:hover{border-color:var(--green);color:var(--green);}
+  .chip-b:hover{border-color:var(--purple);color:var(--purple);}
+
+  /* ── Metrics ── */
+  .metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
+  @media(max-width:600px){.metrics-grid{grid-template-columns:repeat(2,1fr);}}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;}
+  .metric-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+  .metric-val{font-size:1.25rem;font-weight:700;line-height:1.2;}
+  .metric-sub{font-size:11px;color:var(--muted2);margin-top:3px;font-family:'DM Mono',monospace;}
+  .c-green{color:var(--green);}.c-purple{color:var(--purple);}.c-amber{color:var(--amber);}.c-blue{color:var(--blue);}
+
+  /* ── Charts ── */
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem;}
+  .chart-title{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);
+    margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted2);}
+  .legend-swatch{width:10px;height:10px;border-radius:2px;}
+  .chart-wrap{position:relative;width:100%;height:280px;}
+  .chart-wrap-sm{position:relative;width:100%;height:200px;}
+
+  /* ── Table ── */
+  .stats-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .stats-table th{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:400;}
+  .stats-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;color:var(--muted2);}
+  .stats-table td:first-child{color:var(--text);font-weight:600;}
+  .stats-table tr:last-child td{border-bottom:none;}
+  .up{color:var(--green);}.down{color:var(--red);}
+
+  /* ── Ticker editor ── */
+  .editor-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:1.25rem;}
+  .editor-header h2{font-size:16px;font-weight:600;}
+  .ticker-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1.5rem;}
+  .ticker-row-item{display:flex;align-items:center;gap:10px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;}
+  .ticker-row-item .sym{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;min-width:60px;color:var(--green);}
+  .ticker-row-item .name{font-size:13px;color:var(--muted2);flex:1;}
+  .ticker-row-item .cat-badge{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:20px;
+    background:var(--surface3);border:1px solid var(--border);color:var(--muted2);}
+  .ticker-row-item .yrs{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);min-width:60px;text-align:right;}
+
+  /* ── Add ticker form ── */
+  .add-form{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem;}
+  .add-form-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+  .add-form-title span{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);font-weight:400;}
+  .form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media(max-width:600px){.form-grid-3{grid-template-columns:1fr 1fr;}}
+  .form-field{display:flex;flex-direction:column;gap:5px;}
+  .form-field label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2);}
+
+  .years-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px;}
+  @media(max-width:500px){.years-grid{grid-template-columns:repeat(3,1fr);}}
+  .year-cell{display:flex;flex-direction:column;gap:4px;}
+  .year-cell label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:center;}
+  .year-cell input{padding:6px 4px;text-align:center;font-size:12px;}
+  .year-cell .p-inp{border-color:rgba(0,214,143,0.2);}
+  .year-cell .d-inp{border-color:rgba(139,127,245,0.2);}
+
+  .legend-row{display:flex;gap:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);margin-bottom:8px;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+
+  /* ── Export / import ── */
+  .export-area textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+    color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:12px;resize:vertical;min-height:160px;outline:none;}
+  .export-area textarea:focus{border-color:var(--green);}
+
+  /* ── Misc ── */
+  .disclaimer{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;margin-top:2rem;line-height:1.7;}
+  .results-section{animation:fadeIn 0.4s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .hidden{display:none!important;}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--surface3);border:1px solid var(--border2);
+    border-radius:var(--radius);padding:10px 18px;font-family:'DM Mono',monospace;font-size:12px;color:var(--green);
+    z-index:99;animation:fadeIn 0.2s ease;pointer-events:none;}
+  .divider{height:1px;background:var(--border);margin:1.25rem 0;}
+  .info-box{background:rgba(77,166,255,0.07);border:1px solid rgba(77,166,255,0.2);border-radius:var(--radius);
+    padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);line-height:1.7;margin-bottom:1rem;}
+  .info-box strong{color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="wrap">
+
+<header>
+  <div class="tag">DRIP Backtester v2</div>
+  <h1>Dividend vs <span>Growth</span></h1>
+  <p class="subtitle">Compare ETFs &amp; stocks with DRIP reinvestment, DCA &amp; inflation-adjusted returns</p>
+</header>
+
+<!-- Tab nav -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="backtest">Backtest</button>
+  <button class="tab-btn" data-tab="editor">Manage Tickers</button>
+  <button class="tab-btn" data-tab="guide">Code Guide</button>
+</div>
+
+<!-- ═══════════════════════════════════ TAB: BACKTEST ═══════════════════════════════════ -->
+<div id="tab-backtest" class="tab-panel active">
+
+  <div class="card">
+    <div class="controls-grid">
+      <div>
+        <div class="field-label">Ticker A</div>
+        <div class="ticker-row">
+          <div class="color-dot" style="background:var(--green)"></div>
+          <select id="selA"></select>
+        </div>
+        <div class="chips" id="chipsA"></div>
+      </div>
+      <div>
+        <div class="field-label">Ticker B</div>
+        <div class="ticker-row">
+          <div class="color-dot" style="background:var(--purple)"></div>
+          <select id="selB"></select>
+        </div>
+        <div class="chips" id="chipsB"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.25rem;">
+      <div class="field-label">Backtest period</div>
+      <div class="period-row">
+        <button class="period-btn" data-yrs="5">5 yr</button>
+        <button class="period-btn active" data-yrs="10">10 yr</button>
+        <button class="period-btn" data-yrs="15">15 yr</button>
+        <button class="period-btn" data-yrs="20">20 yr</button>
+      </div>
+    </div>
+
+    <div class="controls-grid" style="margin-top:1.25rem;">
+      <div class="slider-field">
+        <label>Initial lump sum <span id="lump-lbl">$10,000</span></label>
+        <input type="range" id="lump" min="1000" max="100000" step="1000" value="10000">
+      </div>
+      <div class="slider-field">
+        <label>Monthly DCA <span id="dca-lbl">$200</span></label>
+        <input type="range" id="dca" min="0" max="2000" step="50" value="200">
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn">Run Backtest</button>
+  </div>
+
+  <div id="results" class="results-section hidden">
+    <div class="metrics-grid" id="metricsGrid"></div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Portfolio value — inflation-adjusted real $</span>
+        <div class="legend" id="legend1"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>Annual real gain / loss</span>
+        <div class="legend" id="legend2"></div>
+      </div>
+      <div class="chart-wrap-sm"><canvas id="barChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span>Year-by-year breakdown</span></div>
+      <div style="overflow-x:auto;"><table class="stats-table" id="statsTable"></table></div>
+    </div>
+  </div>
+
+  <p class="disclaimer">
+    Data: verified historical annual returns (2004–2024) · DRIP reinvested annually · US CPI inflation-adjusted<br>
+    Educational purposes only — not financial advice
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════ TAB: EDITOR ═══════════════════════════════════ -->
+<div id="tab-editor" class="tab-panel">
+
+  <div class="card">
+    <div class="editor-header">
+      <h2>Ticker library <span style="font-size:13px;font-weight:400;color:var(--muted2);font-family:'DM Mono',monospace;" id="tickerCount"></span></h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-amber" id="exportBtn">Export JSON</button>
+        <button class="btn btn-green" id="importTriggerBtn">Import JSON</button>
+      </div>
+    </div>
+
+    <div class="ticker-list" id="tickerList"></div>
+
+    <div class="divider"></div>
+
+    <!-- Add new ticker form -->
+    <div class="add-form">
+      <div class="add-form-title">
+        Add new ticker
+        <span>fill in annual data below — price return % and dividend yield %</span>
+      </div>
+
+      <div class="info-box">
+        <strong>Where to find data:</strong> Go to <strong>macrotrends.net</strong> → search your ticker → "Annual Returns" for price return, "Dividend Yield History" for yield. Enter as decimals: 12.5% = <strong>0.125</strong>, 3.2% = <strong>0.032</strong>
+      </div>
+
+      <div class="form-grid-3" style="margin-bottom:1rem;">
+        <div class="form-field">
+          <label>Ticker symbol</label>
+          <input type="text" id="newSymbol" placeholder="e.g. VTI" maxlength="8" style="text-transform:uppercase;">
+        </div>
+        <div class="form-field">
+          <label>Full name</label>
+          <input type="text" id="newName" placeholder="e.g. Vanguard Total Market">
+        </div>
+        <div class="form-field">
+          <label>Category</label>
+          <select id="newCat">
+            <option>Dividend ETF</option>
+            <option>Div Growth ETF</option>
+            <option>Growth ETF</option>
+            <option>Blend ETF</option>
+            <option>REIT ETF</option>
+            <option>Dividend Stock</option>
+            <option>Growth Stock</option>
+            <option>High Yield Stock</option>
+            <option>Value Stock</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="legend-row">
+        <span><span class="legend-dot" style="background:var(--green)"></span>Price return (p) — e.g. +0.125 or -0.045</span>
+        <span><span class="legend-dot" style="background:var(--purple)"></span>Div yield (d) — e.g. 0.032 (0 if none)</span>
+      </div>
+
+      <div class="years-grid" id="yearInputGrid"></div>
+
+      <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
+        <button class="btn btn-green" id="addTickerBtn">Add to library</button>
+        <button class="btn" id="clearFormBtn">Clear</button>
+      </div>
+      <div id="addMsg" style="font-family:'DM Mono',monospace;font-size:12px;margin-top:8px;min-height:18px;"></div>
+    </div>
+
+    <!-- Import area (hidden by default) -->
+    <div id="importArea" class="export-area hidden">
+      <div class="field-label" style="margin-bottom:8px;">Paste JSON ticker data below and click Import</div>
+      <textarea id="importJson" placeholder='{"TICKER":{"name":"Name","cat":"Category","data":{"2020":{"p":0.15,"d":0.025},...}}}'></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-green" id="doImportBtn">Import</button>
+        <button class="btn" id="cancelImportBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ TAB: CODE GUIDE ═══════════════════════════════════ -->
+<div id="tab-guide" class="tab-panel">
+  <div class="card">
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:1.25rem;">How to add tickers by editing the code</h2>
+
+    <div class="info-box" style="margin-bottom:1.5rem;">
+      <strong>Tip:</strong> The visual editor (Manage Tickers tab) is the easiest way to add tickers without touching code. Use this guide if you prefer to edit the HTML file directly — useful when adding many tickers at once.
+    </div>
+
+    <div style="font-family:'DM Mono',monospace;font-size:12px;line-height:1.9;color:var(--muted2);">
+
+      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;">① Locate the TICKERS object</div>
+      <p style="margin-bottom:12px;">Open <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">index.html</code> in any text editor. Search for <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">const TICKERS = {</code> — this is around line 140.</p>
+
+      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">② Data structure for one ticker</div>
+      <pre style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;overflow-x:auto;font-size:11px;line-height:1.8;color:var(--text);">"VTI": {
+  name: "Vanguard Total Market",   // display name
+  cat:  "Blend ETF",               // category (shown in dropdown group)
+  data: {
+    2015: { p: 0.009,  d: 0.019 }, // p = price return, d = dividend yield
+    2016: { p: 0.125,  d: 0.020 },
+    2017: { p: 0.213,  d: 0.018 },
+    2018: { p: -0.053, d: 0.020 }, // negative = down year
+    2019: { p: 0.307,  d: 0.019 },
+    2020: { p: 0.212,  d: 0.016 },
+    2021: { p: 0.255,  d: 0.013 },
+    2022: { p: -0.193, d: 0.016 },
+    2023: { p: 0.259,  d: 0.014 },
+    2024: { p: 0.239,  d: 0.014 }
+  }
+},</pre>
+
+      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">③ Where to get the numbers</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:1rem;">
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 0;color:var(--text);min-width:140px;">Price return (p)</td>
+          <td style="padding:8px 0;">macrotrends.net → [TICKER] → "Annual Stock Return" — use Total Return column, divide by 100</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 0;color:var(--text);">Dividend yield (d)</td>
+          <td style="padding:8px 0;">macrotrends.net → [TICKER] → "Dividend Yield" → Annual average — divide by 100. Use 0 for non-dividend stocks</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:var(--text);">Format</td>
+          <td style="padding:8px 0;">Decimals, not percent: 12.5% → <strong style="color:var(--green);">0.125</strong>, -4.5% → <strong style="color:var(--red);">-0.045</strong>, 3.2% → <strong style="color:var(--purple);">0.032</strong></td>
+        </tr>
+      </table>
+
+      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">④ Paste it in the right place</div>
+      <p style="margin-bottom:8px;">Add your new entry inside the <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">TICKERS = { ... }</code> object. Each entry ends with a comma except the last one:</p>
+      <pre style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;overflow-x:auto;font-size:11px;line-height:1.8;color:var(--text);">const TICKERS = {
+  "VYM": { ... },   // existing ticker
+  "QQQ": { ... },   // existing ticker
+  "VTI": { ... },   // &lt;-- your new ticker (comma after it if more follow)
+  "NVDA": { ... }   // last entry — no trailing comma
+};</pre>
+
+      <div style="color:var(--green);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">⑤ Save and refresh</div>
+      <p>Save the file, refresh the browser (or re-upload to GitHub Pages). Your ticker will appear automatically in both dropdowns, grouped by the <code style="color:var(--text);background:var(--surface2);padding:2px 6px;border-radius:4px;">cat</code> field.</p>
+
+      <div style="color:var(--amber);font-size:13px;font-weight:500;margin-bottom:8px;margin-top:1.5rem;">Common mistakes</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:7px 0;color:var(--red);min-width:180px;">p: 12.5</td>
+          <td style="padding:7px 0;">Wrong — this is 1250%, not 12.5%. Always use decimals.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:7px 0;color:var(--red);">Missing years</td>
+          <td style="padding:7px 0;">If a year is missing, the overlap with other tickers shrinks. Fill in as many years as possible.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:7px 0;color:var(--red);">Trailing comma on last item</td>
+          <td style="padding:7px 0;">Will cause a JS error. The last entry in TICKERS should NOT have a comma after the closing <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">}</code>.</td>
+        </tr>
+        <tr>
+          <td style="padding:7px 0;color:var(--red);">d: undefined for growth</td>
+          <td style="padding:7px 0;">If a stock pays no dividend, use <code style="background:var(--surface2);padding:1px 4px;border-radius:3px;">d: 0</code>, not omitting d entirely.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  TICKER DATA — add new tickers here
+//  Structure: "SYMBOL": { name, cat, data: { YEAR: { p, d } } }
+//  p = annual price return as decimal (0.12 = +12%, -0.05 = -5%)
+//  d = annual dividend yield as decimal (0.032 = 3.2%, 0 = no dividend)
+// ═══════════════════════════════════════════════════════════════════════════
+const BASE_TICKERS = {
+  "VYM":  { name:"Vanguard High Div Yield",      cat:"Dividend ETF",    data:{2005:{p:0.051,d:0.031},2006:{p:0.195,d:0.030},2007:{p:-0.023,d:0.031},2008:{p:-0.322,d:0.037},2009:{p:0.148,d:0.038},2010:{p:0.138,d:0.034},2011:{p:0.042,d:0.032},2012:{p:0.132,d:0.031},2013:{p:0.278,d:0.030},2014:{p:0.096,d:0.030},2015:{p:-0.006,d:0.033},2016:{p:0.179,d:0.033},2017:{p:0.141,d:0.031},2018:{p:-0.058,d:0.034},2019:{p:0.244,d:0.032},2020:{p:0.012,d:0.033},2021:{p:0.264,d:0.028},2022:{p:-0.013,d:0.032},2023:{p:0.121,d:0.031},2024:{p:0.148,d:0.030}}},
+  "SCHD": { name:"Schwab US Dividend Equity",    cat:"Dividend ETF",    data:{2012:{p:0.099,d:0.031},2013:{p:0.296,d:0.030},2014:{p:0.113,d:0.028},2015:{p:-0.008,d:0.031},2016:{p:0.195,d:0.031},2017:{p:0.164,d:0.030},2018:{p:-0.069,d:0.034},2019:{p:0.275,d:0.033},2020:{p:0.114,d:0.034},2021:{p:0.298,d:0.030},2022:{p:-0.055,d:0.034},2023:{p:-0.047,d:0.038},2024:{p:0.136,d:0.037}}},
+  "DVY":  { name:"iShares Select Dividend",      cat:"Dividend ETF",    data:{2004:{p:0.158,d:0.038},2005:{p:0.047,d:0.040},2006:{p:0.207,d:0.039},2007:{p:-0.010,d:0.041},2008:{p:-0.327,d:0.047},2009:{p:0.128,d:0.051},2010:{p:0.148,d:0.046},2011:{p:0.080,d:0.042},2012:{p:0.137,d:0.040},2013:{p:0.222,d:0.037},2014:{p:0.099,d:0.036},2015:{p:-0.061,d:0.037},2016:{p:0.234,d:0.035},2017:{p:0.116,d:0.033},2018:{p:-0.041,d:0.036},2019:{p:0.212,d:0.034},2020:{p:-0.082,d:0.039},2021:{p:0.216,d:0.034},2022:{p:0.044,d:0.037},2023:{p:0.003,d:0.042},2024:{p:0.067,d:0.044}}},
+  "HDV":  { name:"iShares Core High Div",        cat:"Dividend ETF",    data:{2012:{p:0.080,d:0.036},2013:{p:0.213,d:0.035},2014:{p:0.097,d:0.033},2015:{p:-0.044,d:0.034},2016:{p:0.198,d:0.034},2017:{p:0.112,d:0.031},2018:{p:-0.019,d:0.034},2019:{p:0.186,d:0.031},2020:{p:-0.070,d:0.040},2021:{p:0.263,d:0.035},2022:{p:0.063,d:0.038},2023:{p:0.016,d:0.042},2024:{p:0.091,d:0.041}}},
+  "DGRO": { name:"iShares Dividend Growth",      cat:"Div Growth ETF",  data:{2015:{p:-0.001,d:0.022},2016:{p:0.171,d:0.023},2017:{p:0.194,d:0.022},2018:{p:-0.060,d:0.025},2019:{p:0.275,d:0.024},2020:{p:0.118,d:0.025},2021:{p:0.295,d:0.022},2022:{p:-0.089,d:0.026},2023:{p:0.142,d:0.026},2024:{p:0.171,d:0.026}}},
+  "VNQ":  { name:"Vanguard Real Estate (REIT)",  cat:"REIT ETF",        data:{2005:{p:0.153,d:0.043},2006:{p:0.362,d:0.040},2007:{p:-0.164,d:0.047},2008:{p:-0.375,d:0.064},2009:{p:0.295,d:0.068},2010:{p:0.280,d:0.056},2011:{p:0.085,d:0.052},2012:{p:0.179,d:0.047},2013:{p:0.021,d:0.044},2014:{p:0.302,d:0.038},2015:{p:0.027,d:0.038},2016:{p:0.080,d:0.040},2017:{p:0.049,d:0.040},2018:{p:-0.059,d:0.044},2019:{p:0.288,d:0.038},2020:{p:-0.047,d:0.044},2021:{p:0.404,d:0.033},2022:{p:-0.261,d:0.040},2023:{p:0.118,d:0.044},2024:{p:0.051,d:0.045}}},
+  "QQQ":  { name:"Invesco Nasdaq 100",           cat:"Growth ETF",      data:{2004:{p:0.107,d:0.002},2005:{p:0.019,d:0.002},2006:{p:0.072,d:0.002},2007:{p:0.188,d:0.002},2008:{p:-0.417,d:0.003},2009:{p:0.548,d:0.003},2010:{p:0.197,d:0.004},2011:{p:0.030,d:0.005},2012:{p:0.181,d:0.006},2013:{p:0.369,d:0.006},2014:{p:0.196,d:0.006},2015:{p:0.094,d:0.006},2016:{p:0.072,d:0.006},2017:{p:0.326,d:0.006},2018:{p:-0.010,d:0.007},2019:{p:0.388,d:0.006},2020:{p:0.487,d:0.005},2021:{p:0.271,d:0.005},2022:{p:-0.328,d:0.007},2023:{p:0.546,d:0.006},2024:{p:0.251,d:0.006}}},
+  "SPY":  { name:"SPDR S&P 500",                 cat:"Blend ETF",       data:{2004:{p:0.107,d:0.017},2005:{p:0.048,d:0.018},2006:{p:0.156,d:0.018},2007:{p:0.055,d:0.018},2008:{p:-0.368,d:0.023},2009:{p:0.264,d:0.021},2010:{p:0.152,d:0.019},2011:{p:0.021,d:0.020},2012:{p:0.160,d:0.020},2013:{p:0.324,d:0.019},2014:{p:0.136,d:0.019},2015:{p:0.014,d:0.020},2016:{p:0.119,d:0.021},2017:{p:0.218,d:0.019},2018:{p:-0.044,d:0.021},2019:{p:0.314,d:0.019},2020:{p:0.183,d:0.016},2021:{p:0.287,d:0.013},2022:{p:-0.182,d:0.016},2023:{p:0.264,d:0.014},2024:{p:0.250,d:0.014}}},
+  "VGT":  { name:"Vanguard Info Tech",           cat:"Growth ETF",      data:{2005:{p:0.011,d:0.005},2006:{p:0.104,d:0.005},2007:{p:0.162,d:0.005},2008:{p:-0.421,d:0.006},2009:{p:0.607,d:0.006},2010:{p:0.111,d:0.007},2011:{p:0.022,d:0.007},2012:{p:0.148,d:0.008},2013:{p:0.426,d:0.008},2014:{p:0.198,d:0.008},2015:{p:0.039,d:0.009},2016:{p:0.140,d:0.009},2017:{p:0.383,d:0.009},2018:{p:-0.023,d:0.010},2019:{p:0.497,d:0.009},2020:{p:0.437,d:0.008},2021:{p:0.283,d:0.007},2022:{p:-0.283,d:0.008},2023:{p:0.565,d:0.007},2024:{p:0.271,d:0.007}}},
+  "IWF":  { name:"iShares Russell 1000 Growth",  cat:"Growth ETF",      data:{2004:{p:0.065,d:0.007},2005:{p:0.053,d:0.007},2006:{p:0.094,d:0.007},2007:{p:0.124,d:0.007},2008:{p:-0.384,d:0.008},2009:{p:0.371,d:0.008},2010:{p:0.162,d:0.009},2011:{p:0.028,d:0.009},2012:{p:0.151,d:0.009},2013:{p:0.334,d:0.009},2014:{p:0.133,d:0.010},2015:{p:0.038,d:0.010},2016:{p:0.070,d:0.010},2017:{p:0.272,d:0.010},2018:{p:-0.016,d:0.011},2019:{p:0.360,d:0.010},2020:{p:0.407,d:0.009},2021:{p:0.274,d:0.008},2022:{p:-0.293,d:0.009},2023:{p:0.426,d:0.008},2024:{p:0.332,d:0.008}}},
+  "AAPL": { name:"Apple Inc.",                   cat:"Growth Stock",    data:{2004:{p:2.010,d:0.000},2005:{p:1.548,d:0.000},2006:{p:0.187,d:0.000},2007:{p:1.330,d:0.000},2008:{p:-0.570,d:0.000},2009:{p:1.469,d:0.000},2010:{p:0.531,d:0.000},2011:{p:0.254,d:0.000},2012:{p:0.326,d:0.006},2013:{p:0.080,d:0.023},2014:{p:0.406,d:0.019},2015:{p:-0.030,d:0.019},2016:{p:0.126,d:0.020},2017:{p:0.484,d:0.015},2018:{p:-0.057,d:0.016},2019:{p:0.890,d:0.012},2020:{p:0.822,d:0.007},2021:{p:0.336,d:0.006},2022:{p:-0.266,d:0.007},2023:{p:0.490,d:0.005},2024:{p:0.302,d:0.004}}},
+  "MSFT": { name:"Microsoft Corp.",              cat:"Growth Stock",    data:{2004:{p:0.083,d:0.008},2005:{p:-0.006,d:0.011},2006:{p:0.156,d:0.013},2007:{p:0.203,d:0.013},2008:{p:-0.444,d:0.018},2009:{p:0.600,d:0.022},2010:{p:-0.067,d:0.025},2011:{p:-0.046,d:0.028},2012:{p:0.057,d:0.031},2013:{p:0.443,d:0.028},2014:{p:0.276,d:0.026},2015:{p:0.229,d:0.024},2016:{p:0.149,d:0.025},2017:{p:0.404,d:0.021},2018:{p:0.207,d:0.017},2019:{p:0.577,d:0.013},2020:{p:0.428,d:0.010},2021:{p:0.527,d:0.008},2022:{p:-0.284,d:0.011},2023:{p:0.584,d:0.008},2024:{p:0.151,d:0.008}}},
+  "KO":   { name:"Coca-Cola Co.",                cat:"Dividend Stock",  data:{2004:{p:0.028,d:0.026},2005:{p:0.003,d:0.029},2006:{p:0.228,d:0.027},2007:{p:0.315,d:0.025},2008:{p:-0.261,d:0.030},2009:{p:0.269,d:0.029},2010:{p:0.176,d:0.028},2011:{p:0.115,d:0.028},2012:{p:0.068,d:0.028},2013:{p:0.168,d:0.029},2014:{p:0.041,d:0.030},2015:{p:0.035,d:0.031},2016:{p:-0.004,d:0.032},2017:{p:0.124,d:0.031},2018:{p:0.012,d:0.034},2019:{p:0.180,d:0.030},2020:{p:-0.010,d:0.033},2021:{p:0.085,d:0.030},2022:{p:0.112,d:0.029},2023:{p:-0.038,d:0.031},2024:{p:0.033,d:0.032}}},
+  "JNJ":  { name:"Johnson & Johnson",            cat:"Dividend Stock",  data:{2004:{p:0.255,d:0.018},2005:{p:-0.038,d:0.020},2006:{p:0.124,d:0.022},2007:{p:0.042,d:0.023},2008:{p:-0.086,d:0.027},2009:{p:0.084,d:0.030},2010:{p:0.013,d:0.032},2011:{p:0.098,d:0.033},2012:{p:0.095,d:0.032},2013:{p:0.349,d:0.030},2014:{p:0.160,d:0.028},2015:{p:-0.100,d:0.031},2016:{p:0.136,d:0.031},2017:{p:0.131,d:0.028},2018:{p:-0.064,d:0.030},2019:{p:0.123,d:0.028},2020:{p:0.064,d:0.027},2021:{p:0.107,d:0.025},2022:{p:0.033,d:0.025},2023:{p:-0.126,d:0.029},2024:{p:-0.047,d:0.034}}},
+  "NVDA": { name:"NVIDIA Corp.",                 cat:"Growth Stock",    data:{2015:{p:0.297,d:0.002},2016:{p:2.268,d:0.001},2017:{p:0.832,d:0.001},2018:{p:-0.310,d:0.003},2019:{p:0.762,d:0.002},2020:{p:1.220,d:0.001},2021:{p:1.251,d:0.001},2022:{p:-0.502,d:0.001},2023:{p:2.388,d:0.001},2024:{p:1.712,d:0.001}}}
+};
+
+// CPI annual inflation rates
+const CPI = {2004:0.027,2005:0.034,2006:0.032,2007:0.028,2008:0.038,2009:-0.004,
+  2010:0.016,2011:0.032,2012:0.021,2013:0.015,2014:0.016,2015:0.007,
+  2016:0.021,2017:0.021,2018:0.024,2019:0.023,2020:0.012,2021:0.047,2022:0.080,2023:0.041,2024:0.029};
+
+// ── Runtime ticker store (base + user additions via editor) ──────────────
+let TICKERS = JSON.parse(JSON.stringify(BASE_TICKERS));
+const STORAGE_KEY = 'drip_custom_tickers';
+function loadCustom() {
+  try { const s = localStorage.getItem(STORAGE_KEY); if(s) Object.assign(TICKERS, JSON.parse(s)); } catch(e){}
+}
+function saveCustom() {
+  const custom = {};
+  Object.keys(TICKERS).forEach(k=>{ if(!BASE_TICKERS[k]) custom[k]=TICKERS[k]; });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(custom)); } catch(e){}
+}
+loadCustom();
+
+// ── Tab switching ────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='editor') renderTickerList();
+  });
+});
+
+// ── Build dropdowns ──────────────────────────────────────────────────────
+function buildSelects() {
+  ['selA','selB'].forEach((id,i) => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = '';
+    const cats = {};
+    Object.entries(TICKERS).forEach(([t,v])=>{ (cats[v.cat]=cats[v.cat]||[]).push(t); });
+    Object.entries(cats).forEach(([cat,ticks])=>{
+      const og = document.createElement('optgroup'); og.label = cat;
+      ticks.forEach(t=>{
+        const o = document.createElement('option'); o.value=t;
+        o.textContent=`${t} — ${TICKERS[t].name}`;
+        if(t===(prev||(i===0?'VYM':'QQQ'))) o.selected=true;
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+  });
+  // quick chips
+  [['chipsA','chip-a','selA',["SCHD","DVY","KO","JNJ","VNQ"]],
+   ['chipsB','chip-b','selB',["SPY","VGT","MSFT","AAPL","NVDA"]]].forEach(([chipId,cls,selId,picks])=>{
+    const chips = document.getElementById(chipId); chips.innerHTML='';
+    picks.filter(t=>TICKERS[t]).forEach(t=>{
+      const c=document.createElement('span'); c.className=`chip ${cls}`; c.textContent=t;
+      c.onclick=()=>{ document.getElementById(selId).value=t; }; chips.appendChild(c);
+    });
+  });
+}
+buildSelects();
+
+// ── Period buttons ───────────────────────────────────────────────────────
+let selectedYears = 10;
+document.querySelectorAll('.period-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); selectedYears=parseInt(btn.dataset.yrs);
+  });
+});
+
+document.getElementById('lump').addEventListener('input',e=>
+  document.getElementById('lump-lbl').textContent='$'+parseInt(e.target.value).toLocaleString());
+document.getElementById('dca').addEventListener('input',e=>
+  document.getElementById('dca-lbl').textContent='$'+parseInt(e.target.value).toLocaleString());
+
+// ── Backtest logic ───────────────────────────────────────────────────────
+function fmt(n){ return '$'+Math.round(n).toLocaleString(); }
+function pct(n){ return (n>=0?'+':'')+(n*100).toFixed(1)+'%'; }
+function cagrCalc(end,start,yrs){ return Math.pow(end/start,1/yrs)-1; }
+function getYears(ticker,wantYrs){ const a=Object.keys(TICKERS[ticker].data).map(Number).sort((a,b)=>a-b); return a.slice(-wantYrs); }
+function simulate(lump,monthly,years,ticker){
+  let bal=lump; const out=[];
+  years.forEach(y=>{ const{p,d}=TICKERS[ticker].data[y]; bal+=monthly*6; bal=bal*(1+p)+bal*d; bal+=monthly*6; out.push(Math.max(0,bal)); });
+  return out;
+}
+function inflAdj(arr,years){ let m=1; return arr.map((v,i)=>{ m*=(1+(CPI[years[i]]||0.025)); return v/m; }); }
+
+let lc,bc;
+document.getElementById('runBtn').addEventListener('click',()=>{
+  const tA=document.getElementById('selA').value, tB=document.getElementById('selB').value;
+  const lump=parseInt(document.getElementById('lump').value), monthly=parseInt(document.getElementById('dca').value);
+  const yearsA=getYears(tA,selectedYears), yearsB=getYears(tB,selectedYears);
+  const years=yearsA.filter(y=>yearsB.includes(y)); const n=years.length;
+  if(n<2){ alert('Not enough overlapping data. Try a shorter period.'); return; }
+  const balA=simulate(lump,monthly,years,tA), balB=simulate(lump,monthly,years,tB);
+  const dep=years.map((_,i)=>lump+monthly*12*(i+1));
+  const rA=inflAdj(balA,years), rB=inflAdj(balB,years), rD=inflAdj(dep,years);
+  const cgA=cagrCalc(rA[n-1],lump,n), cgB=cagrCalc(rB[n-1],lump,n);
+  const aWins=rA[n-1]>=rB[n-1];
+  document.getElementById('metricsGrid').innerHTML=`
+    <div class="metric"><div class="metric-label">${tA} final (real)</div><div class="metric-val c-green">${fmt(rA[n-1])}</div><div class="metric-sub">CAGR ${pct(cgA)}</div></div>
+    <div class="metric"><div class="metric-label">${tB} final (real)</div><div class="metric-val c-purple">${fmt(rB[n-1])}</div><div class="metric-sub">CAGR ${pct(cgB)}</div></div>
+    <div class="metric"><div class="metric-label">Total deposited</div><div class="metric-val c-amber">${fmt(dep[n-1])}</div><div class="metric-sub">${fmt(lump)} + ${fmt(monthly)}/mo × ${n}yr</div></div>
+    <div class="metric"><div class="metric-label">Winner</div><div class="metric-val ${aWins?'c-green':'c-purple'}">${aWins?tA:tB}</div><div class="metric-sub">${fmt(Math.abs(rA[n-1]-rB[n-1]))} ahead</div></div>`;
+  document.getElementById('legend1').innerHTML=`<span class="legend-item"><span class="legend-swatch" style="background:#00d68f"></span>${tA}</span><span class="legend-item"><span class="legend-swatch" style="background:#8b7ff5"></span>${tB}</span><span class="legend-item"><span class="legend-swatch" style="background:#3a3f50"></span>Deposited</span>`;
+  document.getElementById('legend2').innerHTML=`<span class="legend-item"><span class="legend-swatch" style="background:#00d68f"></span>${tA}</span><span class="legend-item"><span class="legend-swatch" style="background:#8b7ff5"></span>${tB}</span>`;
+  const labels=years.map(String);
+  const tt={backgroundColor:'#1a1f2e',borderColor:'#2a2f40',borderWidth:1,titleColor:'#e8eaf0',bodyColor:'#8890a0'};
+  if(lc) lc.destroy();
+  lc=new Chart(document.getElementById('lineChart'),{type:'line',data:{labels,datasets:[
+    {label:tA,data:rA.map(Math.round),borderColor:'#00d68f',backgroundColor:'rgba(0,214,143,0.07)',fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {label:tB,data:rB.map(Math.round),borderColor:'#8b7ff5',backgroundColor:'rgba(139,127,245,0.07)',fill:true,tension:0.3,pointRadius:3,borderWidth:2},
+    {label:'Deposited',data:rD.map(Math.round),borderColor:'#3a3f50',fill:false,tension:0,pointRadius:2,borderWidth:1.5,borderDash:[4,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},...tt}},
+    scales:{y:{ticks:{callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v),color:'#5a6070',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+      x:{ticks:{color:'#5a6070',font:{size:11},autoSkip:false,maxRotation:45},grid:{display:false},border:{display:false}}}}});
+  const gA=rA.map((v,i)=>Math.round(v-(i===0?lump:rA[i-1])-monthly*12));
+  const gB=rB.map((v,i)=>Math.round(v-(i===0?lump:rB[i-1])-monthly*12));
+  if(bc) bc.destroy();
+  bc=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels,datasets:[
+    {label:tA,data:gA,backgroundColor:gA.map(v=>v>=0?'rgba(0,214,143,0.7)':'rgba(245,86,74,0.5)'),borderRadius:3},
+    {label:tB,data:gB,backgroundColor:gB.map(v=>v>=0?'rgba(139,127,245,0.7)':'rgba(245,86,74,0.4)'),borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},...tt}},
+    scales:{y:{ticks:{callback:v=>(v<0?'-$':'$')+Math.abs(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v),color:'#5a6070',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+      x:{ticks:{color:'#5a6070',font:{size:11},autoSkip:false,maxRotation:45},grid:{display:false},border:{display:false}}}}});
+  let rows=`<thead><tr><th>Year</th><th>${tA} return</th><th>${tA} div</th><th>${tA} real bal</th><th>${tB} return</th><th>${tB} div</th><th>${tB} real bal</th><th>Leader</th></tr></thead><tbody>`;
+  years.forEach((y,i)=>{
+    const dA=TICKERS[tA].data[y],dB=TICKERS[tB].data[y];
+    rows+=`<tr><td>${y}</td><td class="${dA.p>=0?'up':'down'}">${pct(dA.p)}</td><td>${(dA.d*100).toFixed(2)}%</td><td class="c-green">${fmt(rA[i])}</td><td class="${dB.p>=0?'up':'down'}">${pct(dB.p)}</td><td>${(dB.d*100).toFixed(2)}%</td><td class="c-purple">${fmt(rB[i])}</td><td>${rA[i]>=rB[i]?`<span class="up">${tA}</span>`:`<span class="c-purple">${tB}</span>`}</td></tr>`;
+  });
+  document.getElementById('statsTable').innerHTML=rows+'</tbody>';
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TICKER EDITOR
+// ═══════════════════════════════════════════════════════════════════════════
+const ALL_YEARS = [2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+
+function renderTickerList() {
+  const list = document.getElementById('tickerList');
+  list.innerHTML = '';
+  document.getElementById('tickerCount').textContent = `(${Object.keys(TICKERS).length} tickers)`;
+  Object.entries(TICKERS).forEach(([sym,v])=>{
+    const years = Object.keys(v.data);
+    const isCustom = !BASE_TICKERS[sym];
+    const row = document.createElement('div'); row.className='ticker-row-item';
+    row.innerHTML=`<span class="sym">${sym}</span><span class="name">${v.name}</span>
+      <span class="cat-badge">${v.cat}</span>
+      <span class="yrs">${Math.min(...years)}–${Math.max(...years)}</span>
+      ${isCustom?`<button class="btn btn-red" style="padding:5px 10px;font-size:11px;" onclick="deleteTicker('${sym}')">Remove</button>`:'<span style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;padding:0 4px;">built-in</span>'}`;
+    list.appendChild(row);
+  });
+}
+
+window.deleteTicker = function(sym) {
+  if(!confirm(`Remove ${sym} from the library?`)) return;
+  delete TICKERS[sym]; saveCustom(); buildSelects(); renderTickerList(); showToast(`${sym} removed`);
+};
+
+// Build year input grid
+function buildYearGrid() {
+  const grid = document.getElementById('yearInputGrid'); grid.innerHTML='';
+  ALL_YEARS.forEach(y=>{
+    const cell=document.createElement('div'); cell.className='year-cell';
+    cell.innerHTML=`<label>${y}</label>
+      <input type="number" class="p-inp" id="p_${y}" placeholder="p" step="0.001">
+      <input type="number" class="d-inp" id="d_${y}" placeholder="d" step="0.001">`;
+    grid.appendChild(cell);
+  });
+}
+buildYearGrid();
+
+document.getElementById('addTickerBtn').addEventListener('click', ()=>{
+  const sym = document.getElementById('newSymbol').value.trim().toUpperCase();
+  const name = document.getElementById('newName').value.trim();
+  const cat = document.getElementById('newCat').value;
+  const msg = document.getElementById('addMsg');
+  if(!sym||!name){ msg.style.color='var(--red)'; msg.textContent='Ticker symbol and name are required.'; return; }
+  if(!/^[A-Z.\-]{1,8}$/.test(sym)){ msg.style.color='var(--red)'; msg.textContent='Invalid symbol format.'; return; }
+  const data={};
+  ALL_YEARS.forEach(y=>{
+    const p=parseFloat(document.getElementById('p_'+y).value);
+    const d=parseFloat(document.getElementById('d_'+y).value);
+    if(!isNaN(p)&&!isNaN(d)) data[y]={p,d};
+    else if(!isNaN(p)) data[y]={p,d:0};
+  });
+  if(Object.keys(data).length===0){ msg.style.color='var(--red)'; msg.textContent='Enter data for at least one year.'; return; }
+  TICKERS[sym]={name,cat,data}; saveCustom(); buildSelects();
+  msg.style.color='var(--green)'; msg.textContent=`✓ ${sym} added with ${Object.keys(data).length} years of data.`;
+  showToast(`${sym} added to library`);
+  setTimeout(()=>{ document.getElementById('newSymbol').value=''; document.getElementById('newName').value=''; buildYearGrid(); msg.textContent=''; },1500);
+});
+
+document.getElementById('clearFormBtn').addEventListener('click',()=>{
+  document.getElementById('newSymbol').value=''; document.getElementById('newName').value='';
+  buildYearGrid(); document.getElementById('addMsg').textContent='';
+});
+
+// ── Export / Import ──────────────────────────────────────────────────────
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const custom={};
+  Object.keys(TICKERS).forEach(k=>{ if(!BASE_TICKERS[k]) custom[k]=TICKERS[k]; });
+  const all = Object.keys(custom).length > 0 ? custom : TICKERS;
+  const json = JSON.stringify(all, null, 2);
+  const blob = new Blob([json],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='my_tickers.json'; a.click();
+  showToast('Exported to my_tickers.json');
+});
+
+document.getElementById('importTriggerBtn').addEventListener('click',()=>{
+  document.getElementById('importArea').classList.toggle('hidden');
+});
+document.getElementById('cancelImportBtn').addEventListener('click',()=>{
+  document.getElementById('importArea').classList.add('hidden');
+  document.getElementById('importJson').value='';
+});
+document.getElementById('doImportBtn').addEventListener('click',()=>{
+  try {
+    const parsed = JSON.parse(document.getElementById('importJson').value);
+    let count=0;
+    Object.entries(parsed).forEach(([k,v])=>{ if(v.name&&v.cat&&v.data){ TICKERS[k]=v; count++; } });
+    saveCustom(); buildSelects(); renderTickerList();
+    document.getElementById('importArea').classList.add('hidden');
+    document.getElementById('importJson').value='';
+    showToast(`Imported ${count} ticker(s)`);
+  } catch(e){ alert('Invalid JSON. Check the format and try again.'); }
+});
+
+// ── Toast ────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2200);
+}
+</script>
+</body>
+</html>
