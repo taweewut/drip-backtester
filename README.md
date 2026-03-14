@@ -277,15 +277,8 @@ Possible future improvements:
 
 ## License
 
-You can choose your preferred license for this repository.
-
-Common options:
 
 - MIT License
-- Apache-2.0
-- GPL-3.0
-
-If you want a simple permissive choice for GitHub, **MIT** is a common option.
 
 ---
 
