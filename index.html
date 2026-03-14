@@ -90,6 +90,17 @@
   .slider-field label{display:flex;justify-content:space-between;align-items:center;
     font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:6px;}
   .slider-field label span{color:var(--text);font-size:13px;}
+  .toggle-card{margin-top:1.25rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .toggle-copy{display:flex;flex-direction:column;gap:3px;}
+  .toggle-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);}
+  .toggle-sub{font-size:12px;color:var(--muted2);}
+  .switch{position:relative;display:inline-block;width:52px;height:30px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface3);border:1px solid var(--border2);transition:.2s;border-radius:999px;}
+  .switch-slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.25);}
+  .switch input:checked + .switch-slider{background:var(--green-dim);border-color:var(--green);}
+  .switch input:checked + .switch-slider:before{transform:translateX(22px);background:var(--green);}
+
   input[type=range]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--surface2);
     border-radius:2px;outline:none;border:1px solid var(--border);cursor:pointer;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--green);cursor:pointer;}
@@ -283,6 +294,17 @@
       </div>
     </div>
 
+    <div class="toggle-card">
+      <div class="toggle-copy">
+        <div class="toggle-title" data-i18n="drip_mode">Dividend handling</div>
+        <div class="toggle-sub" id="dripStatus" data-i18n="drip_on_desc">DRIP on — reinvest dividends into more shares</div>
+      </div>
+      <label class="switch" aria-label="Toggle DRIP mode">
+        <input type="checkbox" id="dripToggle" checked>
+        <span class="switch-slider"></span>
+      </label>
+    </div>
+
     <button class="run-btn" id="runBtn" data-i18n="run_btn">Run Backtest</button>
   </div>
 
@@ -340,7 +362,7 @@
   </div>
 
   <p class="disclaimer">
-    <span data-i18n="disclaimer">Data: verified historical annual returns (2004–2024) · DRIP reinvested annually · US CPI inflation-adjusted<br>Educational purposes only — not financial advice</span>
+    <span data-i18n="disclaimer">Data: verified historical annual returns (2004–2025 where available) · DRIP reinvested annually · US CPI inflation-adjusted<br>Educational purposes only — not financial advice</span>
   </p>
   <p style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:1rem;padding-bottom:1rem;">
     <span data-i18n="credit">Built by Taweewut</span>
@@ -440,14 +462,14 @@
 //  d = annual dividend yield as decimal (0.032 = 3.2%, 0 = no dividend)
 // ═══════════════════════════════════════════════════════════════════════════
 const BASE_TICKERS = {
-  "VYM":  { name:"Vanguard High Div Yield",      cat:"Dividend ETF",    data:{2005:{p:0.051,d:0.031},2006:{p:0.195,d:0.030},2007:{p:-0.023,d:0.031},2008:{p:-0.322,d:0.037},2009:{p:0.148,d:0.038},2010:{p:0.138,d:0.034},2011:{p:0.042,d:0.032},2012:{p:0.132,d:0.031},2013:{p:0.278,d:0.030},2014:{p:0.096,d:0.030},2015:{p:-0.006,d:0.033},2016:{p:0.179,d:0.033},2017:{p:0.141,d:0.031},2018:{p:-0.058,d:0.034},2019:{p:0.244,d:0.032},2020:{p:0.012,d:0.033},2021:{p:0.264,d:0.028},2022:{p:-0.013,d:0.032},2023:{p:0.121,d:0.031},2024:{p:0.148,d:0.030}}},
-  "SCHD": { name:"Schwab US Dividend Equity",    cat:"Dividend ETF",    data:{2012:{p:0.099,d:0.031},2013:{p:0.296,d:0.030},2014:{p:0.113,d:0.028},2015:{p:-0.008,d:0.031},2016:{p:0.195,d:0.031},2017:{p:0.164,d:0.030},2018:{p:-0.069,d:0.034},2019:{p:0.275,d:0.033},2020:{p:0.114,d:0.034},2021:{p:0.298,d:0.030},2022:{p:-0.055,d:0.034},2023:{p:-0.047,d:0.038},2024:{p:0.136,d:0.037}}},
-  "DVY":  { name:"iShares Select Dividend",      cat:"Dividend ETF",    data:{2004:{p:0.158,d:0.038},2005:{p:0.047,d:0.040},2006:{p:0.207,d:0.039},2007:{p:-0.010,d:0.041},2008:{p:-0.327,d:0.047},2009:{p:0.128,d:0.051},2010:{p:0.148,d:0.046},2011:{p:0.080,d:0.042},2012:{p:0.137,d:0.040},2013:{p:0.222,d:0.037},2014:{p:0.099,d:0.036},2015:{p:-0.061,d:0.037},2016:{p:0.234,d:0.035},2017:{p:0.116,d:0.033},2018:{p:-0.041,d:0.036},2019:{p:0.212,d:0.034},2020:{p:-0.082,d:0.039},2021:{p:0.216,d:0.034},2022:{p:0.044,d:0.037},2023:{p:0.003,d:0.042},2024:{p:0.067,d:0.044}}},
-  "HDV":  { name:"iShares Core High Div",        cat:"Dividend ETF",    data:{2012:{p:0.080,d:0.036},2013:{p:0.213,d:0.035},2014:{p:0.097,d:0.033},2015:{p:-0.044,d:0.034},2016:{p:0.198,d:0.034},2017:{p:0.112,d:0.031},2018:{p:-0.019,d:0.034},2019:{p:0.186,d:0.031},2020:{p:-0.070,d:0.040},2021:{p:0.263,d:0.035},2022:{p:0.063,d:0.038},2023:{p:0.016,d:0.042},2024:{p:0.091,d:0.041}}},
-  "DGRO": { name:"iShares Dividend Growth",      cat:"Div Growth ETF",  data:{2015:{p:-0.001,d:0.022},2016:{p:0.171,d:0.023},2017:{p:0.194,d:0.022},2018:{p:-0.060,d:0.025},2019:{p:0.275,d:0.024},2020:{p:0.118,d:0.025},2021:{p:0.295,d:0.022},2022:{p:-0.089,d:0.026},2023:{p:0.142,d:0.026},2024:{p:0.171,d:0.026}}},
+  "VYM":  { name:"Vanguard High Div Yield",      cat:"Dividend ETF",    data:{2005:{p:0.051,d:0.031},2006:{p:0.195,d:0.030},2007:{p:-0.023,d:0.031},2008:{p:-0.322,d:0.037},2009:{p:0.148,d:0.038},2010:{p:0.138,d:0.034},2011:{p:0.042,d:0.032},2012:{p:0.132,d:0.031},2013:{p:0.278,d:0.030},2014:{p:0.096,d:0.030},2015:{p:-0.006,d:0.033},2016:{p:0.179,d:0.033},2017:{p:0.141,d:0.031},2018:{p:-0.058,d:0.034},2019:{p:0.244,d:0.032},2020:{p:0.012,d:0.033},2021:{p:0.264,d:0.028},2022:{p:-0.013,d:0.032},2023:{p:0.121,d:0.031},2024:{p:0.148,d:0.030},2025:{p:0.1471,d:0.0233}}},
+  "SCHD": { name:"Schwab US Dividend Equity",    cat:"Dividend ETF",    data:{2012:{p:0.099,d:0.031},2013:{p:0.296,d:0.030},2014:{p:0.113,d:0.028},2015:{p:-0.008,d:0.031},2016:{p:0.195,d:0.031},2017:{p:0.164,d:0.030},2018:{p:-0.069,d:0.034},2019:{p:0.275,d:0.033},2020:{p:0.114,d:0.034},2021:{p:0.298,d:0.030},2022:{p:-0.055,d:0.034},2023:{p:-0.047,d:0.038},2024:{p:0.136,d:0.037},2025:{p:0.0351,d:0.0340}}},
+  "DVY":  { name:"iShares Select Dividend",      cat:"Dividend ETF",    data:{2004:{p:0.158,d:0.038},2005:{p:0.047,d:0.040},2006:{p:0.207,d:0.039},2007:{p:-0.010,d:0.041},2008:{p:-0.327,d:0.047},2009:{p:0.128,d:0.051},2010:{p:0.148,d:0.046},2011:{p:0.080,d:0.042},2012:{p:0.137,d:0.040},2013:{p:0.222,d:0.037},2014:{p:0.099,d:0.036},2015:{p:-0.061,d:0.037},2016:{p:0.234,d:0.035},2017:{p:0.116,d:0.033},2018:{p:-0.041,d:0.036},2019:{p:0.212,d:0.034},2020:{p:-0.082,d:0.039},2021:{p:0.216,d:0.034},2022:{p:0.044,d:0.037},2023:{p:0.003,d:0.042},2024:{p:0.067,d:0.044},2025:{p:0.1053,d:0.0326}}},
+  "HDV":  { name:"iShares Core High Div",        cat:"Dividend ETF",    data:{2012:{p:0.080,d:0.036},2013:{p:0.213,d:0.035},2014:{p:0.097,d:0.033},2015:{p:-0.044,d:0.034},2016:{p:0.198,d:0.034},2017:{p:0.112,d:0.031},2018:{p:-0.019,d:0.034},2019:{p:0.186,d:0.031},2020:{p:-0.070,d:0.040},2021:{p:0.263,d:0.035},2022:{p:0.063,d:0.038},2023:{p:0.016,d:0.042},2024:{p:0.091,d:0.041},2025:{p:0.1074,d:0.0289}}},
+  "DGRO": { name:"iShares Dividend Growth",      cat:"Div Growth ETF",  data:{2015:{p:-0.001,d:0.022},2016:{p:0.171,d:0.023},2017:{p:0.194,d:0.022},2018:{p:-0.060,d:0.025},2019:{p:0.275,d:0.024},2020:{p:0.118,d:0.025},2021:{p:0.295,d:0.022},2022:{p:-0.089,d:0.026},2023:{p:0.142,d:0.026},2024:{p:0.171,d:0.026},2025:{p:0.1537,d:0.0204}}},
   "VNQ":  { name:"Vanguard Real Estate (REIT)",  cat:"REIT ETF",        data:{2005:{p:0.153,d:0.043},2006:{p:0.362,d:0.040},2007:{p:-0.164,d:0.047},2008:{p:-0.375,d:0.064},2009:{p:0.295,d:0.068},2010:{p:0.280,d:0.056},2011:{p:0.085,d:0.052},2012:{p:0.179,d:0.047},2013:{p:0.021,d:0.044},2014:{p:0.302,d:0.038},2015:{p:0.027,d:0.038},2016:{p:0.080,d:0.040},2017:{p:0.049,d:0.040},2018:{p:-0.059,d:0.044},2019:{p:0.288,d:0.038},2020:{p:-0.047,d:0.044},2021:{p:0.404,d:0.033},2022:{p:-0.261,d:0.040},2023:{p:0.118,d:0.044},2024:{p:0.051,d:0.045}}},
   "QQQ":  { name:"Invesco Nasdaq 100",           cat:"Growth ETF",      data:{2004:{p:0.107,d:0.002},2005:{p:0.019,d:0.002},2006:{p:0.072,d:0.002},2007:{p:0.188,d:0.002},2008:{p:-0.417,d:0.003},2009:{p:0.548,d:0.003},2010:{p:0.197,d:0.004},2011:{p:0.030,d:0.005},2012:{p:0.181,d:0.006},2013:{p:0.369,d:0.006},2014:{p:0.196,d:0.006},2015:{p:0.094,d:0.006},2016:{p:0.072,d:0.006},2017:{p:0.326,d:0.006},2018:{p:-0.010,d:0.007},2019:{p:0.388,d:0.006},2020:{p:0.487,d:0.005},2021:{p:0.271,d:0.005},2022:{p:-0.328,d:0.007},2023:{p:0.546,d:0.006},2024:{p:0.251,d:0.006}}},
-  "SPY":  { name:"SPDR S&P 500",                 cat:"Blend ETF",       data:{2004:{p:0.107,d:0.017},2005:{p:0.048,d:0.018},2006:{p:0.156,d:0.018},2007:{p:0.055,d:0.018},2008:{p:-0.368,d:0.023},2009:{p:0.264,d:0.021},2010:{p:0.152,d:0.019},2011:{p:0.021,d:0.020},2012:{p:0.160,d:0.020},2013:{p:0.324,d:0.019},2014:{p:0.136,d:0.019},2015:{p:0.014,d:0.020},2016:{p:0.119,d:0.021},2017:{p:0.218,d:0.019},2018:{p:-0.044,d:0.021},2019:{p:0.314,d:0.019},2020:{p:0.183,d:0.016},2021:{p:0.287,d:0.013},2022:{p:-0.182,d:0.016},2023:{p:0.264,d:0.014},2024:{p:0.250,d:0.014}}},
+  "SPY":  { name:"SPDR S&P 500",                 cat:"Blend ETF",       data:{2004:{p:0.107,d:0.017},2005:{p:0.048,d:0.018},2006:{p:0.156,d:0.018},2007:{p:0.055,d:0.018},2008:{p:-0.368,d:0.023},2009:{p:0.264,d:0.021},2010:{p:0.152,d:0.019},2011:{p:0.021,d:0.020},2012:{p:0.160,d:0.020},2013:{p:0.324,d:0.019},2014:{p:0.136,d:0.019},2015:{p:0.014,d:0.020},2016:{p:0.119,d:0.021},2017:{p:0.218,d:0.019},2018:{p:-0.044,d:0.021},2019:{p:0.314,d:0.019},2020:{p:0.183,d:0.016},2021:{p:0.287,d:0.013},2022:{p:-0.182,d:0.016},2023:{p:0.264,d:0.014},2024:{p:0.250,d:0.014},2025:{p:0.1259,d:0.0107}}},
   "VGT":  { name:"Vanguard Info Tech",           cat:"Growth ETF",      data:{2005:{p:0.011,d:0.005},2006:{p:0.104,d:0.005},2007:{p:0.162,d:0.005},2008:{p:-0.421,d:0.006},2009:{p:0.607,d:0.006},2010:{p:0.111,d:0.007},2011:{p:0.022,d:0.007},2012:{p:0.148,d:0.008},2013:{p:0.426,d:0.008},2014:{p:0.198,d:0.008},2015:{p:0.039,d:0.009},2016:{p:0.140,d:0.009},2017:{p:0.383,d:0.009},2018:{p:-0.023,d:0.010},2019:{p:0.497,d:0.009},2020:{p:0.437,d:0.008},2021:{p:0.283,d:0.007},2022:{p:-0.283,d:0.008},2023:{p:0.565,d:0.007},2024:{p:0.271,d:0.007}}},
   "IWF":  { name:"iShares Russell 1000 Growth",  cat:"Growth ETF",      data:{2004:{p:0.065,d:0.007},2005:{p:0.053,d:0.007},2006:{p:0.094,d:0.007},2007:{p:0.124,d:0.007},2008:{p:-0.384,d:0.008},2009:{p:0.371,d:0.008},2010:{p:0.162,d:0.009},2011:{p:0.028,d:0.009},2012:{p:0.151,d:0.009},2013:{p:0.334,d:0.009},2014:{p:0.133,d:0.010},2015:{p:0.038,d:0.010},2016:{p:0.070,d:0.010},2017:{p:0.272,d:0.010},2018:{p:-0.016,d:0.011},2019:{p:0.360,d:0.010},2020:{p:0.407,d:0.009},2021:{p:0.274,d:0.008},2022:{p:-0.293,d:0.009},2023:{p:0.426,d:0.008},2024:{p:0.332,d:0.008}}},
   "AAPL": { name:"Apple Inc.",                   cat:"Growth Stock",    data:{2004:{p:2.010,d:0.000},2005:{p:1.548,d:0.000},2006:{p:0.187,d:0.000},2007:{p:1.330,d:0.000},2008:{p:-0.570,d:0.000},2009:{p:1.469,d:0.000},2010:{p:0.531,d:0.000},2011:{p:0.254,d:0.000},2012:{p:0.326,d:0.006},2013:{p:0.080,d:0.023},2014:{p:0.406,d:0.019},2015:{p:-0.030,d:0.019},2016:{p:0.126,d:0.020},2017:{p:0.484,d:0.015},2018:{p:-0.057,d:0.016},2019:{p:0.890,d:0.012},2020:{p:0.822,d:0.007},2021:{p:0.336,d:0.006},2022:{p:-0.266,d:0.007},2023:{p:0.490,d:0.005},2024:{p:0.302,d:0.004}}},
@@ -467,8 +489,7 @@ const BASE_TICKERS = {
 // CPI annual inflation rates
 const CPI = {2004:0.027,2005:0.034,2006:0.032,2007:0.028,2008:0.038,2009:-0.004,
   2010:0.016,2011:0.032,2012:0.021,2013:0.015,2014:0.016,2015:0.007,
-  2016:0.021,2017:0.021,2018:0.024,2019:0.023,2020:0.012,2021:0.047,2022:0.080,2023:0.041,2024:0.029};
-
+  2016:0.021,2017:0.021,2018:0.024,2019:0.023,2020:0.012,2021:0.047,2022:0.080,2023:0.041,2024:0.029,2025:0.026};
 // ── Runtime ticker store (base + user additions via editor) ──────────────
 let TICKERS = JSON.parse(JSON.stringify(BASE_TICKERS));
 const STORAGE_KEY = 'drip_custom_tickers';
@@ -538,14 +559,30 @@ document.getElementById('lump').addEventListener('input',e=>
 document.getElementById('dca').addEventListener('input',e=>
   document.getElementById('dca-lbl').textContent='$'+parseInt(e.target.value).toLocaleString());
 
+function refreshDripStatus() {
+  const on = document.getElementById('dripToggle').checked;
+  const key = on ? 'drip_on_desc' : 'drip_off_desc';
+  document.getElementById('dripStatus').innerHTML = t(key);
+}
+
+document.getElementById('dripToggle').addEventListener('change', refreshDripStatus);
+
+
 // ── Backtest logic ───────────────────────────────────────────────────────
 function fmt(n){ return '$'+Math.round(n).toLocaleString(); }
 function pct(n){ return (n>=0?'+':'')+(n*100).toFixed(1)+'%'; }
 function cagrCalc(end,start,yrs){ return Math.pow(end/start,1/yrs)-1; }
 function getYears(ticker,wantYrs){ const a=Object.keys(TICKERS[ticker].data).map(Number).sort((a,b)=>a-b); return a.slice(-wantYrs); }
-function simulate(lump,monthly,years,ticker){
+function simulate(lump,monthly,years,ticker,drip=true){
   let bal=lump; const out=[];
-  years.forEach(y=>{ const{p,d}=TICKERS[ticker].data[y]; bal+=monthly*6; bal=bal*(1+p)+bal*d; bal+=monthly*6; out.push(Math.max(0,bal)); });
+  years.forEach(y=>{
+    const {p,d}=TICKERS[ticker].data[y];
+    bal += monthly*6;
+    const divIncome = bal * d;
+    bal = bal*(1+p) + (drip ? divIncome : 0);
+    bal += monthly*6;
+    out.push(Math.max(0,bal));
+  });
   return out;
 }
 function inflAdj(arr,years){ let m=1; return arr.map((v,i)=>{ m*=(1+(CPI[years[i]]||0.025)); return v/m; }); }
@@ -553,13 +590,13 @@ function inflAdj(arr,years){ let m=1; return arr.map((v,i)=>{ m*=(1+(CPI[years[i
 let lc,bc,dbc,dcc;
 
 // Simulate with dividend tracking — returns {balances, annualDiv}
-function simulateDetailed(lump, monthly, years, ticker) {
+function simulateDetailed(lump, monthly, years, ticker, drip=true) {
   let bal = lump; const balances=[], annualDiv=[];
   years.forEach(y=>{
     const {p,d} = TICKERS[ticker].data[y];
     bal += monthly*6;
     const divIncome = bal * d;
-    bal = bal*(1+p) + divIncome;
+    bal = bal*(1+p) + (drip ? divIncome : 0);
     bal += monthly*6;
     balances.push(Math.max(0,bal));
     annualDiv.push(Math.round(divIncome));
@@ -570,12 +607,13 @@ function simulateDetailed(lump, monthly, years, ticker) {
 document.getElementById('runBtn').addEventListener('click',()=>{
   const tA=document.getElementById('selA').value, tB=document.getElementById('selB').value;
   const lump=parseInt(document.getElementById('lump').value), monthly=parseInt(document.getElementById('dca').value);
+  const drip = document.getElementById('dripToggle').checked;
   const yearsA=getYears(tA,selectedYears), yearsB=getYears(tB,selectedYears);
   const years=yearsA.filter(y=>yearsB.includes(y)); const n=years.length;
   if(n<2){ alert(t('err_overlap')); return; }
 
-  const simA=simulateDetailed(lump,monthly,years,tA);
-  const simB=simulateDetailed(lump,monthly,years,tB);
+  const simA=simulateDetailed(lump,monthly,years,tA,drip);
+  const simB=simulateDetailed(lump,monthly,years,tB,drip);
   const balA=simA.balances, balB=simB.balances;
   const divA=simA.annualDiv, divB=simB.annualDiv;
 
@@ -595,9 +633,10 @@ document.getElementById('runBtn').addEventListener('click',()=>{
 
   // ── Metrics row 1: portfolio ──
   document.getElementById('metricsGrid').innerHTML=`
-    <div class="metric"><div class="metric-label">${tA} ${t('final_real')}</div><div class="metric-val c-green">${fmt(rA[n-1])}</div><div class="metric-sub">CAGR ${pct(cgA)}</div></div>
-    <div class="metric"><div class="metric-label">${tB} ${t('final_real')}</div><div class="metric-val c-purple">${fmt(rB[n-1])}</div><div class="metric-sub">CAGR ${pct(cgB)}</div></div>
-    <div class="metric"><div class="metric-label">${t('total_dep')}</div><div class="metric-val c-amber">${fmt(dep[n-1])}</div><div class="metric-sub">${fmt(lump)} + ${fmt(monthly)}/mo × ${n}yr</div></div>
+  <div class="metric"><div class="metric-label">${tA} ${t('final_real')}</div><div class="metric-val c-green">${fmt(rA[n-1])}</div><div class="metric-sub">${drip ? t('mode_drip_on') : t('mode_drip_off')} · CAGR ${pct(cgA)}</div></div>
+  <div class="metric"><div class="metric-label">${tB} ${t('final_real')}</div><div class="metric-val c-purple">${fmt(rB[n-1])}</div><div class="metric-sub">${drip ? t('mode_drip_on') : t('mode_drip_off')} · CAGR ${pct(cgB)}</div></div>
+ 
+  <div class="metric"><div class="metric-label">${t('total_dep')}</div><div class="metric-val c-amber">${fmt(dep[n-1])}</div><div class="metric-sub">${fmt(lump)} + ${fmt(monthly)}/mo × ${n}yr</div></div>
     <div class="metric"><div class="metric-label">${t('portfolio_winner')}</div><div class="metric-val ${aWins?'c-green':'c-purple'}">${aWins?tA:tB}</div><div class="metric-sub">${fmt(Math.abs(rA[n-1]-rB[n-1]))} ${t('ahead')}</div></div>`;
 
   // ── Metrics row 2: dividends ──
@@ -608,32 +647,44 @@ document.getElementById('runBtn').addEventListener('click',()=>{
     <div class="metric"><div class="metric-label">${tB} ${t('last_yr_div')}</div><div class="metric-val c-purple">${fmt(lastDivB)}</div><div class="metric-sub">yield ${(TICKERS[tB].data[years[n-1]].d*100).toFixed(2)}%</div></div>`;
 
   // ── Deep stats helpers ──────────────────────────────────────────────────
-  function tickerStats(ticker, yrs) {
+  function tickerStats(ticker, yrs, annualDiv) {
     const data = yrs.map(y => TICKERS[ticker].data[y]);
     const yields = data.map(d => d.d);
     const prices = data.map(d => d.p);
     const totalReturns = data.map(d => d.p + d.d);
+    const divIncome = annualDiv || [];
 
     // Dividend yield current (last year)
     const yieldNow = yields[yields.length-1];
-    // Div growth rates
-    function divCAGR(yLen) {
-      if (yLen >= yrs.length) return null;
-      const y0 = yields[yields.length-1-yLen], y1 = yields[yields.length-1];
-      if (!y0 || y0 <= 0) return null;
-      return Math.pow(y1/y0, 1/yLen)-1;
-    }
-    const dgr1  = yields.length>=2  ? (yields[yields.length-1]-yields[yields.length-2])/yields[yields.length-2] : null;
-    const dgr3  = divCAGR(3);
-    const dgr5  = divCAGR(5);
-    const dgr10 = divCAGR(10);
 
-    // Consecutive years of dividend growth
-    let consGrowth=0;
-    for(let i=yields.length-1;i>0;i--){ if(yields[i]>yields[i-1]) consGrowth++; else break; }
-    // Consecutive years of any payment
-    let consPay=0;
-    for(let i=yields.length-1;i>=0;i--){ if(yields[i]>0) consPay++; else break; }
+    // Dividend income growth rates — aligned with the dividend bar chart
+    function divIncomeCAGR(yLen) {
+      if (divIncome.length <= yLen) return null;
+      const start = divIncome[divIncome.length - 1 - yLen];
+      const end = divIncome[divIncome.length - 1];
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0) return null;
+      return Math.pow(end / start, 1 / yLen) - 1;
+    }
+    const dgr1  = divIncome.length >= 2
+      ? ((divIncome[divIncome.length - 1] - divIncome[divIncome.length - 2]) / divIncome[divIncome.length - 2])
+      : null;
+    const dgr3  = divIncomeCAGR(3);
+    const dgr5  = divIncomeCAGR(5);
+    const dgr10 = divIncomeCAGR(10);
+
+    // Consecutive years of dividend income growth
+    let consGrowth = 0;
+    for (let i = divIncome.length - 1; i > 0; i--) {
+      if (divIncome[i] > divIncome[i - 1]) consGrowth++;
+      else break;
+    }
+
+    // Consecutive years of any dividend payment
+    let consPay = 0;
+    for (let i = divIncome.length - 1; i >= 0; i--) {
+      if (divIncome[i] > 0) consPay++;
+      else break;
+    }
 
     // Growth metrics
     const priceCAGR = cagrCalc(
@@ -646,21 +697,18 @@ document.getElementById('runBtn').addEventListener('click',()=>{
     );
     const bestYear  = Math.max(...prices);
     const worstYear = Math.min(...prices);
-    // Max drawdown proxy (worst single year)
     const maxDD = worstYear;
-    // Volatility = std dev of annual total returns
     const mean = totalReturns.reduce((a,b)=>a+b,0)/totalReturns.length;
     const variance = totalReturns.reduce((a,b)=>a+Math.pow(b-mean,2),0)/totalReturns.length;
     const vol = Math.sqrt(variance);
-    // Sharpe-like (total return CAGR / vol, risk-free ~4%)
     const sharpe = vol > 0 ? (totalCAGR - 0.04) / vol : null;
 
     return { yieldNow, dgr1, dgr3, dgr5, dgr10, consGrowth, consPay,
              priceCAGR, totalCAGR, bestYear, worstYear, maxDD, vol, sharpe };
   }
 
-  const sA = tickerStats(tA, years);
-  const sB = tickerStats(tB, years);
+  const sA = tickerStats(tA, years, divA);
+  const sB = tickerStats(tB, years, divB);
 
   function fPct(v, dec=1) { return v===null ? '—' : (v>=0?'+':'')+(v*100).toFixed(dec)+'%'; }
   function fPctPlain(v, dec=2) { return v===null ? '—' : (v*100).toFixed(dec)+'%'; }
@@ -816,7 +864,7 @@ document.getElementById('runBtn').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════════════════════════════════
 //  TICKER EDITOR
 // ═══════════════════════════════════════════════════════════════════════════
-const ALL_YEARS = [2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+const ALL_YEARS = [2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
 
 function renderTickerList() {
   const list = document.getElementById('tickerList');
@@ -927,6 +975,11 @@ const LANG = {
     period:          'Backtest period',
     lump_sum:        'Initial lump sum',
     monthly_dca:     'Monthly DCA',
+    drip_mode:       'Dividend handling',
+    drip_on_desc:    'DRIP on — reinvest dividends into more shares',
+    drip_off_desc:   'DRIP off — take dividends as cash, do not reinvest',
+    mode_drip_on:    'DRIP on',
+    mode_drip_off:   'No DRIP',
     run_btn:         'Run Backtest',
     div_metrics:     'Dividend metrics',
     growth_metrics:  'Growth &amp; risk metrics',
@@ -935,7 +988,7 @@ const LANG = {
     chart_div_cum:   'Cumulative dividend income — total dividends collected',
     chart_gain:      'Annual real gain / loss',
     chart_table:     'Year-by-year breakdown',
-    disclaimer:      'Data: verified historical annual returns (2004–2024) · DRIP reinvested annually · US CPI inflation-adjusted<br>Educational purposes only — not financial advice',
+    disclaimer:      'Data: verified historical annual returns (2004–2025 where available) · DRIP reinvested annually · US CPI inflation-adjusted<br>Educational purposes only — not financial advice',
     credit:          'Built by Taweewut',
     ticker_library:  'Ticker library',
     export_json:     'Export JSON',
@@ -1034,6 +1087,11 @@ const LANG = {
     period:          'ช่วงเวลาทดสอบ',
     lump_sum:        'เงินลงทุนครั้งแรก',
     monthly_dca:     'DCA รายเดือน',
+    drip_mode:       'การจัดการเงินปันผล',
+    drip_on_desc:    'เปิด DRIP — นำเงินปันผลกลับไปลงทุนต่อ',
+    drip_off_desc:   'ปิด DRIP — รับเงินปันผลเป็นเงินสด ไม่นำกลับไปลงทุน',
+    mode_drip_on:    'เปิด DRIP',
+    mode_drip_off:   'ไม่ใช้ DRIP',
     run_btn:         'รันการทดสอบ',
     div_metrics:     'ตัวชี้วัดเงินปันผล',
     growth_metrics:  'ตัวชี้วัดการเติบโตและความเสี่ยง',
@@ -1042,7 +1100,7 @@ const LANG = {
     chart_div_cum:   'รายได้เงินปันผลสะสม — ยอดรวมเงินปันผลที่เก็บได้ทั้งหมด',
     chart_gain:      'กำไร / ขาดทุนรายปีที่แท้จริง',
     chart_table:     'สรุปรายปี',
-    disclaimer:      'ข้อมูล: ผลตอบแทนประวัติศาสตร์รายปีที่ตรวจสอบแล้ว (2547–2567) · นำเงินปันผลกลับไปลงทุนใหม่ · ปรับด้วย CPI สหรัฐฯ<br>เพื่อการศึกษาเท่านั้น — ไม่ใช่คำแนะนำทางการเงิน',
+    disclaimer:      'ข้อมูล: ผลตอบแทนประวัติศาสตร์รายปีที่ตรวจสอบแล้ว (2547–2568 ตามที่มีข้อมูล) · นำเงินปันผลกลับไปลงทุนใหม่ · ปรับด้วย CPI สหรัฐฯ<br>เพื่อการศึกษาเท่านั้น — ไม่ใช่คำแนะนำทางการเงิน',
     credit:          'พัฒนาโดย ทวีวุฒิ',
     ticker_library:  'คลัง Ticker',
     export_json:     'ส่งออก JSON',
@@ -1142,8 +1200,9 @@ function applyLang() {
   // Ticker library header special case (keep count span)
   const tl = document.querySelector('h2[data-i18n="ticker_library"]');
   if(tl) tl.innerHTML = t('ticker_library') + ` <span style="font-size:13px;font-weight:400;color:var(--muted2);font-family:'DM Mono',monospace;" id="tickerCount">${document.getElementById('tickerCount')?.textContent||''}</span>`;
-  document.getElementById('langLabel').textContent = currentLang==='en' ? 'ภาษาไทย' : 'English';
+    document.getElementById('langLabel').textContent = currentLang==='en' ? 'ภาษาไทย' : 'English';
   renderGuide();
+  if(document.getElementById('dripStatus')) refreshDripStatus();
 }
 
 function renderGuide() {
@@ -1166,7 +1225,8 @@ function renderGuide() {
     2021: { p: 0.255, d: 0.013 },
     2022: { p: -0.193, d: 0.016 },
     2023: { p: 0.259, d: 0.014 },
-    2024: { p: 0.239, d: 0.014 }
+    2024: { p: 0.239, d: 0.014 },
+    2025: { p: 0.120, d: 0.014 }
   }
 },`)}
       ${step(t('guide_s3'))}
